@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MMU Library python ystem</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f0f2f5; margin: 0; padding: 0; }
+        .header-banner { background-color: #004a99; color: white; padding: 25px; text-align: center; font-size: 3.5em; font-weight: bold; }
+        .container { width: 90%; max-width: 1200px; margin: 30px auto; }
+        .section-box { background: white; padding: 30px; border-radius: 15px; margin-top: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        /* Flash message styling */
+        .msg-danger { color: #721c24; background: #f8d7da; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #f5c6cb; margin-bottom: 20px; }
+        .msg-success { color: #155724; background: #d4edda; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #c3e6cb; margin-bottom: 20px; }
+        .btn-borrow { background: #28a745; color: white; padding: 10px 25px; border-radius: 8px; text-decoration: none; font-weight: bold; }
+        .btn-return { color: #007bff; text-decoration: none; font-weight: bold; border: 2px solid #007bff; padding: 10px 20px; border-radius: 8px; }
+        .cat-tag { background: #e1f5fe; color: #01579b; padding: 4px 12px; border-radius: 20px; font-size: 0.7em; margin-left: 10px; border: 1px solid #b3e5fc; }
+    </style>
+</head>
+<body>
+    <div class="header-banner">MMU Library System</div>
+    <div class="container">
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    {# Only show library-related notifications here #}
+                    {% if "borrow" in message.lower() or "return" in message.lower() or "limit" in message.lower() %}
+                        <div class="msg-{{ category }}">{{ message }}</div>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h2 style="font-size: 2.5em;">Welcome, {{ username }}!</h2>
+            <div style="display: flex; gap: 10px;">
+                <a href="{{ url_for('transactions.show_books', username=username) }}" style="color: #d9534f; border: 1px solid #d9534f; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: bold;">Home</a>
+                <a href="/logout" style="color: #6c757d; border: 1px solid #6c757d; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: bold;">Logout</a>
+            </div>
+        </div>
+
+        <div class="section-box">
+            <form action="{{ url_for('transactions.search', username=username) }}" method="GET" style="display: flex; gap: 15px;">
+                <input type="text" name="query" placeholder="Search by book title or author..." style="flex: 3; padding: 15px; font-size: 1.2em; border-radius: 8px; border: 1px solid #ccc;">
+                <select name="category" style="flex: 1; padding: 15px; font-size: 1.2em; border-radius: 8px; border: 1px solid #ccc;">
+                    <option value="All">All Categories</option>
+                    <option value="Fiction">Fiction</option>
+                    <option value="Science Fiction">Science Fiction</option>
+                    <option value="Fantasy">Fantasy</option>
+                    <option value="Technology">Technology</option>
+                </select>
+                <button type="submit" style="background: #007bff; color: white; padding: 10px 30px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer;">Search</button>
+                <a href="{{ url_for('transactions.show_books', username=username) }}" style="background: #6c757d; color: white; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 0.9em; display: flex; align-items: center;">Clear</a>
+            </form>
+        </div>
+
+        <div class="section-box">
+            <h3 style="font-size: 2em; margin-top: 0;">📚 Library Catalog</h3>
+            {% for book in books %}
+            <div style="display: flex; justify-content: space-between; padding: 20px 0; border-bottom: 1px solid #eee;">
+                <div>
+                    <strong>{{ book.title }}</strong> <span class="cat-tag">{{ book.category }}</span><br>
+                    <span style="color: #666; font-size: 0.9em;">by {{ book.author }}</span>
+                </div>
+                <div>
+                    {% if book.available == 1 %}
+                        <a href="{{ url_for('transactions.borrow', username=username, book_id=book.id) }}" class="btn-borrow">Borrow Book</a>
+                    {% else %}
+                        <span style="color: #bbb; font-weight: bold;">Currently Out</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="section-box" style="border-left: 12px solid #004a99;">
+            <h3 style="font-size: 2em; margin-top: 0;">📖 My Borrowed Books (Limit: 3)</h3>
+            {% if my_borrowed %}
+                {% for book in my_borrowed %}
+                <div style="display: flex; justify-content: space-between; padding: 20px 0; border-bottom: 1px solid #eee;">
+                    <div>
+                        <strong>{{ book.title }}</strong><br>
+                        <small style="color: #28a745; font-weight: bold;">Due Date: {{ book.due_date.strftime('%Y-%m-%d') if book.due_date }}</small>
+                    </div>
+                    <a href="{{ url_for('transactions.return_book', username=username, book_id=book.id) }}" class="btn-return">Return</a>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p style="color: #888; font-size: 1.2em;">You currently have no borrowed books.</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
