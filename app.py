@@ -4,7 +4,7 @@ from transaction import transactions_bp
 from librarian import librarian_bp
 from reader import reader_bp # Ensure this is imported
 import pyodbc
-
+#hi
 app = Flask(__name__)
 app.secret_key = "test_secret"
 
