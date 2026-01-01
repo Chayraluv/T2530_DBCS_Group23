@@ -67,7 +67,7 @@ def home():
 
 
 
-@reader_bp.route('/register', methods=['POST'])
+'''@reader_bp.route('/register', methods=['POST'])
 def register():
     username = request.form.get('username')
     password = request.form.get('password')
@@ -84,7 +84,7 @@ def register():
         flash("Username already exists. Please choose another.", "danger")
     except Exception as e:
         flash(f"Error: {str(e)}", "danger")
-    return redirect(url_for('reader.home'))
+    return redirect(url_for('reader.home'))'''
 
 
 @reader_bp.route('/dashboard')

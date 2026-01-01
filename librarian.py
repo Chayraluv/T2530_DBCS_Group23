@@ -135,7 +135,7 @@ def reset_password():
 
 @librarian_bp.route('/librarian/dashboard')
 def dashboard():
-    if 'username' not in session or session.get('role') != 'Librarian':
+    if 'role' not in session or session['role'] != 'Librarian':
         flash("Access denied. Please login as Librarian.", "danger")
         return redirect(url_for('reader.home'))
     

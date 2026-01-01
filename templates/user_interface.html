@@ -47,9 +47,11 @@
             box-sizing: border-box;
         }
 
-        .login-box h2 {
-            font-size: 2.5em;
-            margin-bottom: 30px;
+        .login-title {
+            font-size: 3.4em;
+            font-weight: bold;
+            margin-top: 0;
+            margin-bottom: 55px;
             color: #333;
             text-align: center;
         }
@@ -120,10 +122,20 @@
 
         .login-btn {
             background-color: #007bff;
+            padding: 15px;
+            font-size: 1.1em;
+            font-weight: bold;
+            border-radius: 8px;
+            transition: all 0.3s ease;
         }
 
-        .register-btn {
-            background-color: #6c757d;
+        .login-btn:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+        }
+
+        .login-btn:active {
+            transform: translateY(0);
         }
 
         .btn-borrow {
@@ -177,7 +189,7 @@
         </div>
 
         <div class="login-box">
-            <h2>System Login</h2>
+            <h2 class="login-title">System Login</h2>
             <form method="POST">
                 <select name="role" required
                         style="font-size:1.2em; padding:15px; margin-bottom:20px;
@@ -192,7 +204,6 @@
 
                 <div class="btn-group">
                     <button type="submit" formaction="/login" class="login-btn">Sign In</button>
-                    <button type="submit" formaction="/register" class="register-btn">Register</button>
                 </div>
             </form>
         </div>
