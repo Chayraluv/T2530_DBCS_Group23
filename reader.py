@@ -63,14 +63,6 @@ def get_db_connection():
 # In reader.py or your main app file
 @reader_bp.route('/')
 def home():
-    # If user already logged in
-    if 'username' in session and 'role' in session:
-        if session['role'] == 'Librarian':
-            return redirect(url_for('librarian.dashboard'))
-
-        return redirect(
-            url_for('transactions.show_books', username=session['username']))
-
     return render_template('user_interface.html', user=None)
 
 
@@ -93,6 +85,17 @@ def register():
     except Exception as e:
         flash(f"Error: {str(e)}", "danger")
     return redirect(url_for('reader.home'))
+
+
+@reader_bp.route('/dashboard')
+def dashboard_redirect():
+    if 'username' not in session:
+        return redirect(url_for('reader.home'))
+
+    if session['role'] == 'Librarian':
+        return redirect(url_for('librarian.dashboard'))
+
+    return redirect(url_for('transactions.show_books', username=session['username']))
 
 
 @reader_bp.route('/login', methods=['POST'])

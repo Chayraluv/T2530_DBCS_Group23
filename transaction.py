@@ -1,5 +1,5 @@
 # transaction.py
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, session
 from datetime import datetime, timedelta
 import pyodbc
 
@@ -62,6 +62,14 @@ def log_action(username, book_id, action):
 
 @transactions_bp.route('/borrow/<username>/<int:book_id>')
 def borrow(username, book_id):
+    if 'username' not in session or session.get('role') != 'Reader':
+        flash("Unauthorized action.", "danger")
+        return redirect(url_for('reader.home'))
+
+    if session['username'] != username:
+        flash("Unauthorized action.", "danger")
+        return redirect(url_for('reader.home'))
+
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -123,6 +131,15 @@ def borrow(username, book_id):
 
 @transactions_bp.route('/return/<username>/<int:book_id>')
 def return_book(username, book_id):
+    if 'username' not in session or session.get('role') != 'Reader':
+        flash("Unauthorized action.", "danger")
+        return redirect(url_for('reader.home'))
+
+    if session['username'] != username:
+        flash("Unauthorized action.", "danger")
+        return redirect(url_for('reader.home'))
+
+
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -147,6 +164,19 @@ def return_book(username, book_id):
 # In transaction.py
 @transactions_bp.route('/books/<username>')
 def show_books(username):
+    # Security check
+    if 'username' not in session or session.get('role') != 'Reader':
+        flash("Please login as Reader.", "danger")
+        return redirect(url_for('reader.home'))
+    
+    if session['role'] != 'Reader':
+        flash("Access denied.", "danger")
+        return redirect(url_for('reader.home'))
+
+    if session['username'] != username:
+        flash("Unauthorized access.", "danger")
+        return redirect(url_for('reader.home'))
+
     conn = get_db_connection()
     cursor = conn.cursor()
     
@@ -169,6 +199,14 @@ def show_books(username):
 
 @transactions_bp.route('/search/<username>')
 def search(username):
+    if 'username' not in session or session.get('role') != 'Reader':
+        flash("Please login as Reader.", "danger")
+        return redirect(url_for('reader.home'))
+
+    if session['username'] != username:
+        flash("Unauthorized access.", "danger")
+        return redirect(url_for('reader.home'))
+
     query = request.args.get('query', '')
     cat_filter = request.args.get('category', 'All') 
     
