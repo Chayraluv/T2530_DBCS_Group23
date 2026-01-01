@@ -4,23 +4,37 @@ from transaction import transactions_bp
 from librarian import librarian_bp
 from reader import reader_bp # Ensure this is imported
 import pyodbc
-#hi
+
 app = Flask(__name__)
-app.secret_key = "test_secret"
+# app.secret_key = "test_secret"
+app.secret_key = 'mmu_library_secret'
 
 # Register ALL blueprints so url_for can find them
-app.register_blueprint(transactions_bp, url_prefix='/reader')
-app.register_blueprint(librarian_bp, url_prefix='/admin')
-app.register_blueprint(reader_bp) # THIS WAS MISSING
+# app.register_blueprint(transactions_bp, url_prefix='/reader')
+# app.register_blueprint(librarian_bp, url_prefix='/admin')
+# app.register_blueprint(reader_bp) # THIS WAS MISSING
+app.register_blueprint(reader_bp)
+app.register_blueprint(librarian_bp)
+app.register_blueprint(transactions_bp)
 
 def get_db_connection():
     # Update these values to match your local setup
+    # Original connection string (Adibah's setup)
+    # conn_str = (
+    #     "Driver={ODBC Driver 18 for SQL Server};"
+    #     "Server=localhost;"
+    #     "Database=MMU_Library;"
+    #     "Trusted_Connection=yes;"
+    #     "TrustServerCertificate=yes;"
+    # )
+
+    # Updated connection string for SQLEXPRESS (Tiffany's setup)
     conn_str = (
-        "Driver={ODBC Driver 18 for SQL Server};"
-        "Server=localhost;" # Or your Computer Name\Instance Name
-        "Database=MMU_Library;"
-        "Trusted_Connection=yes;"
-        "TrustServerCertificate=yes;"
+    "DRIVER={ODBC Driver 18 for SQL Server};"
+    "SERVER=localhost\\SQLEXPRESS;"
+    "DATABASE=MMU_Library;"
+    "Trusted_Connection=yes;"
+    "Encrypt=no;"
     )
     return pyodbc.connect(conn_str)
 

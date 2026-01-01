@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 from transaction import transactions_bp
 import pyodbc
 from flask import Blueprint
@@ -40,22 +40,39 @@ def search():
 current_user = None'''
 
 def get_db_connection():
+    # Original connection string (Adibah's setup)
+    # conn_str = (
+    #     "Driver={ODBC Driver 18 for SQL Server};"
+    #     "Server=localhost;"
+    #     "Database=MMU_Library;"
+    #     "Trusted_Connection=yes;"
+    #     "TrustServerCertificate=yes;"
+    # )
+
+    # Updated connection string for SQLEXPRESS (Tiffany's setup)
     conn_str = (
-        "Driver={ODBC Driver 18 for SQL Server};"
-        "Server=localhost;"
-        "Database=MMU_Library;"
-        "Trusted_Connection=yes;"
-        "TrustServerCertificate=yes;"
+    "DRIVER={ODBC Driver 18 for SQL Server};"
+    "SERVER=localhost\\SQLEXPRESS;"
+    "DATABASE=MMU_Library;"
+    "Trusted_Connection=yes;"
+    "Encrypt=no;"
     )
+
     return pyodbc.connect(conn_str)
 
 # In reader.py or your main app file
 @reader_bp.route('/')
 def home():
-    if current_user:
-        # Instead of a different page, it refreshes the transaction view
-        return redirect(url_for('transactions.show_books', username=current_user))
+    # If user already logged in
+    if 'username' in session and 'role' in session:
+        if session['role'] == 'Librarian':
+            return redirect(url_for('librarian.dashboard'))
+
+        return redirect(
+            url_for('transactions.show_books', username=session['username']))
+
     return render_template('user_interface.html', user=None)
+
 
 
 @reader_bp.route('/register', methods=['POST'])
@@ -67,7 +84,7 @@ def register():
         conn = get_db_connection()
         cursor = conn.cursor()
         # Insert the new user into the Accounts table
-        cursor.execute("INSERT INTO Accounts (Username, Password) VALUES (?, ?)", (username, password))
+        cursor.execute("INSERT INTO Accounts (Username, Password, Role) VALUES (?, ?, ?)", (username, password, 'Reader'))
         conn.commit()
         conn.close()
         flash("Registration successful! You can now login.", "success")
@@ -77,10 +94,12 @@ def register():
         flash(f"Error: {str(e)}", "danger")
     return redirect(url_for('reader.home'))
 
+
 @reader_bp.route('/login', methods=['POST'])
 def login():
     username = request.form.get('username')
     password = request.form.get('password')
+    selected_role = request.form.get('role')
     
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -90,23 +109,31 @@ def login():
     user_data = cursor.fetchone()
     conn.close()
 
-    if user_data and user_data[0] == password:
-        role = user_data[1]
-        if role == 'Librarian':
-            # Librarian objective: manage books and members securely
-            return redirect(url_for('librarian.dashboard'))
+    if not user_data:
+        flash("Invalid username or password.", "danger")
+        return redirect(url_for('reader.home'))
+
+
+    db_password, db_role = user_data
+
+    if db_password == password and db_role == selected_role:
+        session['username'] = username
+        session['role'] = db_role
+
+        if db_role == 'Librarian':
+            return redirect('/librarian/dashboard')
         else:
-            # Reader objective: search, borrow, and return books
             return redirect(url_for('transactions.show_books', username=username))
+
     
     flash("Invalid username or password", "danger")
     return redirect(url_for('reader.home'))
     
 @reader_bp.route('/logout')
 def logout():
-    global current_user
-    current_user = None
+    session.clear()
     return redirect(url_for('reader.home'))
+
 
 '''@reader_bp.route('/borrow/<int:book_id>')
 def borrow(book_id):

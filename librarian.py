@@ -1,17 +1,28 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, session
 from datetime import datetime, timedelta
 import pyodbc
+
 
 librarian_bp = Blueprint('librarian', __name__)
 
 # Connection helper (matches your transaction.py setup)
 def get_db_connection():
+    # Original connection string (Adibah's setup)
+    # conn_str = (
+    #     "Driver={ODBC Driver 18 for SQL Server};"
+    #     "Server=localhost;"
+    #     "Database=MMU_Library;"
+    #     "Trusted_Connection=yes;"
+    #     "TrustServerCertificate=yes;"
+    # )
+
+    # Updated connection string for SQLEXPRESS (Tiffany's setup)
     conn_str = (
-        "Driver={ODBC Driver 18 for SQL Server};"
-        "Server=localhost;"
-        "Database=MMU_Library;"
-        "Trusted_Connection=yes;"
-        "TrustServerCertificate=yes;"
+    "DRIVER={ODBC Driver 18 for SQL Server};"
+    "SERVER=localhost\\SQLEXPRESS;"
+    "DATABASE=MMU_Library;"
+    "Trusted_Connection=yes;"
+    "Encrypt=no;"
     )
     return pyodbc.connect(conn_str)
 
@@ -124,6 +135,10 @@ def reset_password():
 
 @librarian_bp.route('/librarian/dashboard')
 def dashboard():
+    if 'username' not in session or session.get('role') != 'Librarian':
+        flash("Please login as librarian.", "danger")
+        return redirect(url_for('reader.home'))
+    
     conn = get_db_connection()
     cursor = conn.cursor()
     
@@ -162,6 +177,7 @@ def dashboard():
 @librarian_bp.route('/librarian/logout')
 def logout():
     # In a real app, you'd clear the session here
+    session.clear()
     flash("You have been logged out.", "success")
     return redirect(url_for('reader.home')) # Redirect to the main login page
 

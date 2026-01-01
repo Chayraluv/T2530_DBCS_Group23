@@ -24,12 +24,22 @@ MAX_BORROW_LIMIT = 3
 # Connection helper function
 def get_db_connection():
     # Using your specific setup: localhost, Windows Auth, and Encryption trust
+    # Original connection string (Adibah's setup)
+    # conn_str = (
+    #     "Driver={ODBC Driver 18 for SQL Server};"
+    #     "Server=localhost;"
+    #     "Database=MMU_Library;"
+    #     "Trusted_Connection=yes;"
+    #     "TrustServerCertificate=yes;"
+    # )
+
+    # Updated connection string for SQLEXPRESS (Tiffany's setup)
     conn_str = (
-        "Driver={ODBC Driver 18 for SQL Server};"
-        "Server=localhost;"
-        "Database=MMU_Library;"
-        "Trusted_Connection=yes;"
-        "TrustServerCertificate=yes;"
+    "DRIVER={ODBC Driver 18 for SQL Server};"
+    "SERVER=localhost\\SQLEXPRESS;"
+    "DATABASE=MMU_Library;"
+    "Trusted_Connection=yes;"
+    "Encrypt=no;"
     )
     return pyodbc.connect(conn_str)
 
