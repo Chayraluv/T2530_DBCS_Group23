@@ -10,45 +10,61 @@ CREATE ROLE transaction_role;
 ALTER ROLE transaction_role ADD MEMBER transaction_service;
 GO
 
---Borrow Book--
 CREATE PROCEDURE BorrowBook
-    @user_id INT,
-    @book_id INT
+    @username NVARCHAR(100),
+    @bookID INT
 AS
 BEGIN
     SET NOCOUNT ON;
 
     IF EXISTS (
         SELECT 1 FROM Books
-        WHERE book_id = @book_id AND available = 1
+        WHERE BookID = @bookID AND Available = 1
     )
     BEGIN
-        INSERT INTO BorrowHistory(user_id, book_id, action, action_date)
-        VALUES (@user_id, @book_id, 'BORROW', GETDATE());
+        -- Mark book as borrowed
+        UPDATE Books
+        SET Available = 0, DueDate = DATEADD(day, 14, GETDATE())
+        WHERE BookID = @bookID;
 
-        UPDATE Books SET available = 0 WHERE book_id = @book_id;
+        -- Log the borrowing action
+        INSERT INTO BorrowHistory (Username, BookID, Action)
+        VALUES (@username, @bookID, 'Borrowed');
     END
     ELSE
     BEGIN
-        RAISERROR ('Book is not available', 16, 1);
+        PRINT 'Book not available';
     END
-END;
-GO
+END
 
---Return Book--
+
 CREATE PROCEDURE ReturnBook
-    @user_id INT,
-    @book_id INT
+    @username NVARCHAR(100),
+    @bookID INT
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    INSERT INTO BorrowHistory(user_id, book_id, action, action_date)
-    VALUES (@user_id, @book_id, 'RETURN', GETDATE());
+    IF EXISTS (
+        SELECT 1 FROM Books
+        WHERE BookID = @bookID AND Available = 0
+    )
+    BEGIN
+        -- Mark book as returned
+        UPDATE Books
+        SET Available = 1, DueDate = NULL
+        WHERE BookID = @bookID;
 
-    UPDATE Books SET available = 1 WHERE book_id = @book_id;
-END;
-GO
+        -- Log the returning action
+        INSERT INTO BorrowHistory (Username, BookID, Action)
+        VALUES (@username, @bookID, 'Returned');
+    END
+    ELSE
+    BEGIN
+        PRINT 'Book was not borrowed or does not exist';
+    END
+END
+
 
 --Permission--
 GRANT EXECUTE ON BorrowBook TO transaction_role;
