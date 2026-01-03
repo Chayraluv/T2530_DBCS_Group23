@@ -5,13 +5,13 @@
     <title>Librarian Panel - MMU Library</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #f0f2f5; margin: 0; padding: 0; }
-        .header-banner { 
-            background-color: #004a99; 
-            color: white; 
-            padding: 25px; 
-            text-align: center; 
-            font-size: 3em; 
-            font-weight: bold; 
+        .header-banner {
+            background-color: #004a99;
+            color: white;
+            padding: 25px;
+            text-align: center;
+            font-size: 3em;
+            font-weight: bold;
             position: relative;
         }
         .logout-link {
@@ -24,137 +24,216 @@
             border: 2px solid white;
             padding: 8px 20px;
             border-radius: 8px;
-            transition: 0.3s;
         }
-        .logout-link:hover { background: white; color: #004a99; }
         .container { width: 95%; max-width: 1300px; margin: 30px auto; }
-        .section-box { background: white; padding: 25px; border-radius: 15px; margin-top: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-        
+        .section-box {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin-top: 25px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
         .status-available { font-weight: bold; color: #28a745; }
         .status-borrowed { font-weight: bold; color: #d9534f; }
-        
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
-        th { background-color: #f8f9fa; color: #555; }
-
-        .msg-success { color: #155724; background: #d4edda; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; border: 1px solid #c3e6cb; }
-        .msg-danger { color: #721c24; background: #f8d7da; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; border: 1px solid #f5c6cb; }
-        
-        input[type="text"], input[type="password"], select { padding: 10px; border-radius: 5px; border: 1px solid #ccc; }
-        .btn-action { padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; color: white; text-decoration: none; display: inline-block; }
+        th { background-color: #f8f9fa; }
+        input[type="text"], input[type="password"] {
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        .btn-action {
+            padding: 7px 14px;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-add { background: #28a745; }
         .btn-save { background: #6c757d; }
         .btn-delete { background: #d9534f; }
-        .btn-add { background: #007bff; }
-        .protected-text { color: #888; font-style: italic; font-size: 0.9em; }
+        .protected-text { color: #888; font-style: italic; }
+        .alert-box {
+            border-left: 10px solid #d9534f;
+            background: #fff5f5;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .change-pwd-link {
+            font-weight: bold;
+            color: #004a99;
+            text-decoration: none;
+        }
     </style>
 </head>
 <body>
-    <div class="header-banner">
-        Librarian Panel
-        <a href="{{ url_for('librarian.logout') }}" class="logout-link">Logout</a>
+
+<div class="header-banner">
+    Librarian Panel
+    <a href="{{ url_for('librarian.logout') }}" class="logout-link">Logout</a>
+</div>
+
+<div class="container">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+            <div class="section-box">{{ message }}</div>
+        {% endfor %}
+    {% endwith %}
+
+    <!-- 🔐 PASSWORD CHANGE ENFORCEMENT -->
+    {% if session.get('force_pwd_change') %}
+    <div class="alert-box">
+        <strong>🔐 Password Change Required</strong><br><br>
+        {% if session.get('pwd_reason') == 'first' %}
+            This is your <b>first login</b>. You must change your password before continuing.
+        {% else %}
+            Your password has <b>expired (6 months)</b>. Please update it to continue.
+        {% endif %}
+        <br><br>
+        <a href="{{ url_for('reader.change_password') }}" class="change-pwd-link">
+            👉 Change My Password
+        </a>
     </div>
-    
-    <div class="container">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}{% for category, message in messages %}
-                <div class="msg-{{ category }}">{{ message }}</div>
-            {% endfor %}{% endif %}
-        {% endwith %}
+    {% else %}
+        <p class="protected-text">
+            🔒 Password change is allowed only once every 6 months.
+        </p>
+    {% endif %}
 
-        <div class="section-box" style="border-left: 12px solid #d9534f; background-color: #fff5f5;">
-            <h3 style="color: #d9534f; margin-top: 0;">⚠️ Overdue Report</h3>
-            {% if overdue_list %}
-                <table>
-                    <thead><tr><th>Reader</th><th>Book Title</th><th>Due Date</th></tr></thead>
-                    <tbody>
-                        {% for item in overdue_list %}
-                        <tr>
-                            <td><strong>{{ item.Username }}</strong></td>
-                            <td>{{ item.Title }}</td>
-                            <td class="status-borrowed">{{ item.DueDate.strftime('%Y-%m-%d') }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% else %}
-                <p>No overdue books found.</p>
-            {% endif %}
-        </div>
-
-        <div class="section-box" style="border-left: 12px solid #28a745;">
-            <h3>👤 Member Management & Account Security</h3>
-            
-            <form action="{{ url_for('librarian.create_member') }}" method="POST" style="display: flex; gap: 10px; margin-bottom: 25px;">
-                <input type="text" name="username" placeholder="New Username" required style="flex: 1;">
-                <input type="password" name="password" placeholder="New Password" required style="flex: 1;">
-                <select name="role"><option value="Reader">Reader</option><option value="Librarian">Librarian</option></select>
-                <button type="submit" class="btn-action" style="background: #28a745;">Create Account</button>
-            </form>
-
-            <table>
-                <thead>
-                    <tr><th>Username</th><th>Role</th><th>Password Management</th><th>Account Control</th></tr>
-                </thead>
-                <tbody>
-                    {% for member in members %}
-                    <tr>
-                        <td><strong>{{ member.Username }}</strong></td>
-                        <td>{{ member.Role }}</td>
-                        <td>
-                            {% if member.Username.lower() != 'root' %}
-                                <form action="{{ url_for('librarian.reset_password') }}" method="POST" style="display: flex; gap: 5px;">
-                                    <input type="hidden" name="username" value="{{ member.Username }}">
-                                    <input type="text" name="new_password" placeholder="New PWD" required style="width: 120px;">
-                                    <button type="submit" class="btn-action btn-save">Update</button>
-                                </form>
-                            {% else %}
-                                <span class="protected-text">System Protected: Password change disabled</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if member.Username.lower() != 'root' %}
-                                <a href="{{ url_for('librarian.delete_user', username=member.Username) }}" 
-                                   class="btn-action btn-delete" onclick="return confirm('Delete user?')">Remove</a>
-                            {% else %}
-                                <span style="color: #004a99; font-weight: bold;">Main Admin Protected</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        <div class="section-box">
-            <h3>📦 Inventory & Book Management</h3>
-            <form action="{{ url_for('librarian.add_book') }}" method="POST" style="display: flex; gap: 10px; margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 8px;">
-                <input type="text" name="title" placeholder="Book Title" required style="flex: 2;">
-                <input type="text" name="author" placeholder="Author Name" required style="flex: 1;">
-                <button type="submit" class="btn-action btn-add">Add New Book</button>
-            </form>
-
-            <table>
-                <thead>
-                    <tr><th style="width: 45%;">Title & Author (Edit Mode)</th><th>Status</th><th>Manual Toggle</th><th>Actions</th></tr>
-                </thead>
-                <tbody>
-                    {% for book in inventory %}
-                    <tr>
-                        <td>
-                            <form action="{{ url_for('librarian.edit_book', book_id=book.BookID) }}" method="POST" style="display: flex; gap: 5px;">
-                                <input type="text" name="title" value="{{ book.Title }}" required style="width: 60%;">
-                                <input type="text" name="author" value="{{ book.Author }}" required style="width: 30%;">
-                                <button type="submit" class="btn-action btn-save">Save</button>
-                            </form>
-                        </td>
-                        <td class="{{ 'status-available' if book.Available else 'status-borrowed' }}">{{ "Available" if book.Available else "Borrowed" }}</td>
-                        <td><a href="{{ url_for('librarian.toggle_status', book_id=book.BookID) }}" style="color: #007bff; font-size: 0.9em; text-decoration: none;">Change Status</a></td>
-                        <td><a href="{{ url_for('librarian.delete_book', book_id=book.BookID) }}" class="btn-action btn-delete" onclick="return confirm('Delete this book?')">Delete</a></td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+    <!-- ================= OVERDUE REPORT ================= -->
+    <div class="section-box">
+        <h3>⚠️ Overdue Report</h3>
+        {% if overdue_list %}
+        <table>
+            <thead>
+                <tr><th>Reader</th><th>Book</th><th>Due Date</th></tr>
+            </thead>
+            <tbody>
+                {% for item in overdue_list %}
+                <tr>
+                    <td>{{ item.Username }}</td>
+                    <td>{{ item.Title }}</td>
+                    <td class="status-borrowed">{{ item.DueDate.strftime('%Y-%m-%d') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+            <p>No overdue books found.</p>
+        {% endif %}
     </div>
+
+    <!-- ================= MEMBER MANAGEMENT ================= -->
+    <div class="section-box">
+        <h3>👤 Member Management & Account Security</h3>
+
+        {% if not session.get('force_pwd_change') %}
+        <form action="{{ url_for('librarian.create_member') }}" method="POST"
+              style="display:flex; gap:10px; margin-bottom:20px;">
+            <input type="text" name="username" placeholder="New Username" required>
+            <input type="password" name="password" placeholder="New Password" required>
+            <input type="hidden" name="role" value="Reader">
+            <button class="btn-action btn-add">Create Reader</button>
+        </form>
+        {% endif %}
+
+        <table>
+            <thead>
+                <tr><th>Username</th><th>Role</th><th>Password</th><th>Account</th></tr>
+            </thead>
+            <tbody>
+                {% for member in members %}
+                <tr>
+                    <td>{{ member.Username }}</td>
+                    <td>{{ member.Role }}</td>
+                    <td>
+                        {% if member.Username != session['username'] and not session.get('force_pwd_change') %}
+                        <form action="{{ url_for('librarian.reset_password') }}" method="POST">
+                            <input type="hidden" name="username" value="{{ member.Username }}">
+                            <input type="password" name="new_password" required>
+                            <button class="btn-action btn-save">Update</button>
+                        </form>
+                        {% else %}
+                        <span class="protected-text">Use Change Password</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if member.Username != session['username'] %}
+                        <a href="{{ url_for('librarian.delete_user', username=member.Username) }}"
+                           class="btn-action btn-delete">Remove</a>
+                        {% else %}
+                        <span class="protected-text">Protected</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ================= INVENTORY & BOOK MANAGEMENT ================= -->
+    <div class="section-box">
+        <h3>📦 Inventory & Book Management</h3>
+
+        {% if not session.get('force_pwd_change') %}
+
+        <!-- ADD BOOK -->
+        <form action="{{ url_for('librarian.add_book') }}" method="POST"
+              style="display:flex; gap:10px; margin-bottom:20px;">
+            <input type="text" name="title" placeholder="Book Title" required style="flex:2;">
+            <input type="text" name="author" placeholder="Author Name" required style="flex:1;">
+            <button class="btn-action btn-add">Add Book</button>
+        </form>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Title & Author</th>
+                    <th>Status</th>
+                    <th>Toggle</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for book in inventory %}
+                <tr>
+                    <td>
+                        <form action="{{ url_for('librarian.edit_book', book_id=book.BookID) }}"
+                              method="POST" style="display:flex; gap:5px;">
+                            <input type="text" name="title" value="{{ book.Title }}" required>
+                            <input type="text" name="author" value="{{ book.Author }}" required>
+                            <button class="btn-action btn-save">Save</button>
+                        </form>
+                    </td>
+                    <td class="{{ 'status-available' if book.Available else 'status-borrowed' }}">
+                        {{ "Available" if book.Available else "Borrowed" }}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('librarian.toggle_status', book_id=book.BookID) }}">
+                            Change Status
+                        </a>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('librarian.delete_book', book_id=book.BookID) }}"
+                           class="btn-action btn-delete"
+                           onclick="return confirm('Delete book?')">Delete</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% else %}
+            <p class="protected-text">
+                Inventory management is disabled until password change is completed.
+            </p>
+        {% endif %}
+    </div>
+
+</div>
 </body>
 </html>

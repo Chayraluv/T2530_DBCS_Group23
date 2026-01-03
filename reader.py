@@ -1,8 +1,10 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from transaction import transactions_bp
 import pyodbc
-from flask import Blueprint
-import  win32security
+import bcrypt
+from datetime import datetime, timedelta
+
+PASSWORD_EXPIRY_DAYS = 180  # 6 months
 
 # Ensure this variable name is exactly 'reader_bp'
 reader_bp = Blueprint('reader', __name__)
@@ -22,11 +24,165 @@ def get_db_connection():
     return pyodbc.connect(conn_str)
 
 # In reader.py or your main app file
+def hash_pwd(password: str, rounds=12) -> str:
+    return bcrypt.hashpw(
+        password.encode(),
+        bcrypt.gensalt(rounds)
+    ).decode()
+
+def check_pwd(password: str, hashed: str) -> bool:
+    try:
+        return bcrypt.checkpw(password.encode(), hashed.encode())
+    except ValueError:
+        return False
+
+def check_pwd(password: str, hashed: str) -> bool:
+    return bcrypt.checkpw(password.encode(), hashed.encode())
+
 @reader_bp.route('/')
 def home():
     return render_template('user_interface.html', user=None)
 
+@reader_bp.route('/login', methods=['POST'])
+def login():
+    username = request.form.get('username')
+    password = request.form.get('password')
+    selected_role = request.form.get('role')
 
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT Password, Role, FailedAttempts, LockoutUntil, CreatedDate
+        FROM Accounts
+        WHERE Username = ?
+    """, (username,))
+    user = cursor.fetchone()
+
+    if not user:
+        flash("Invalid username or password.", "danger")
+        return redirect(url_for('reader.home'))
+
+    db_password, db_role, failed, lockout_until, pwd_created = user
+
+    # 🔒 CHECK LOCKOUT
+    if lockout_until and lockout_until > datetime.now():
+        remaining = int((lockout_until - datetime.now()).total_seconds() / 60) + 1
+        flash(f"Account locked. Try again in {remaining} minute(s).", "danger")
+        return redirect(url_for('reader.home'))
+
+    # ❌ WRONG PASSWORD OR ROLE
+    if not check_pwd(password, db_password) or db_role != selected_role:
+        failed += 1
+
+        if failed >= 3:
+            cursor.execute("""
+                UPDATE Accounts
+                SET FailedAttempts = ?, LockoutUntil = DATEADD(MINUTE, 3, GETDATE())
+                WHERE Username = ?
+            """, (failed, username))
+            conn.commit()
+            conn.close()
+
+            flash("Account locked for 3 minutes due to multiple failed attempts.", "danger")
+            return redirect(url_for('reader.home'))
+
+        else:
+            cursor.execute("""
+                UPDATE Accounts
+                SET FailedAttempts = ?
+                WHERE Username = ?
+            """, (failed, username))
+            conn.commit()
+            conn.close()
+
+            flash(f"Invalid login. Attempt {failed}/3.", "danger")
+            return redirect(url_for('reader.home'))
+
+    # ✅ SUCCESSFUL LOGIN → RESET SECURITY
+    cursor.execute("""
+        UPDATE Accounts
+        SET FailedAttempts = 0, LockoutUntil = NULL
+        WHERE Username = ?
+    """, (username,))
+    conn.commit()
+    conn.close()
+
+    session['username'] = username
+    session['role'] = db_role
+
+    # 🔐 PASSWORD POLICY
+    if db_role == 'Librarian':
+        if pwd_created is None:
+            session['force_pwd_change'] = True
+            session['pwd_reason'] = 'first'
+            return redirect(url_for('reader.change_password'))
+
+        if pwd_created < datetime.now() - timedelta(days=180):
+            session['force_pwd_change'] = True
+            session['pwd_reason'] = 'expired'
+            return redirect(url_for('reader.change_password'))
+
+        return redirect(url_for('librarian.dashboard'))
+
+    return redirect(url_for('transactions.show_books', username=username))
+
+@reader_bp.route('/change_password', methods=['GET', 'POST'])
+def change_password():
+    if 'username' not in session:
+        return redirect(url_for('reader.home'))
+    
+    if not session.get('force_pwd_change'):
+        flash("Password can only be changed every 6 months.", "danger")
+        return redirect(url_for('librarian.dashboard'))
+
+    if request.method == 'POST':
+        new_password = request.form.get('new_password')
+
+        hashed = hash_pwd(new_password)
+
+    # Get last password change date
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT CreatedDate FROM Accounts WHERE Username = ?",
+        (session['username'],)
+    )
+    pwd_created = cursor.fetchone()[0]
+    conn.close()
+
+    # 🚫 Block early change (within 6 months)
+    if pwd_created and pwd_created > datetime.now() - timedelta(days=PASSWORD_EXPIRY_DAYS):
+        flash("Password can only be changed every 6 months.", "danger")
+        return redirect(url_for('librarian.dashboard'))
+
+    if request.method == 'POST':
+        new_password = request.form.get('new_password')
+
+        hashed = hash_pwd(new_password)
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE Accounts
+            SET Password = ?, CreatedDate = GETDATE()
+            WHERE Username = ?
+        """, (hashed, session['username']))
+        conn.commit()
+        conn.close()
+
+        session.pop('force_pwd_change', None)
+        session.pop('pwd_reason', None)
+
+        flash("Password updated successfully.", "success")
+
+        if session['role'] == 'Librarian':
+            return redirect(url_for('librarian.dashboard'))
+
+        return redirect(url_for('transactions.show_books', username=session['username']))
+
+    return render_template('change_password.html')
+    
 @reader_bp.route('/dashboard')
 def dashboard_redirect():
     if 'username' not in session:
@@ -36,43 +192,6 @@ def dashboard_redirect():
         return redirect(url_for('librarian.dashboard'))
 
     return redirect(url_for('transactions.show_books', username=session['username']))
-
-
-@reader_bp.route('/login', methods=['POST'])
-def login():
-    username = request.form.get('username')
-    password = request.form.get('password')
-    selected_role = request.form.get('role')
-    
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    # Fetch the password and role for the user
-    cursor.execute("SELECT Password, Role FROM Accounts WHERE Username = ?", (username,))
-    user_data = cursor.fetchone()
-    conn.close()
-
-    if not user_data:
-        flash("Invalid username or password.", "danger")
-        return redirect(url_for('reader.home'))
-
-
-    db_password, db_role = user_data
-
-    if db_password == password and db_role == selected_role:
-        session['username'] = username
-        session['role'] = db_role
-
-        if db_role == 'Librarian':
-            return redirect('/librarian/dashboard')
-        else:
-            return redirect(url_for('transactions.show_books', username=username))
-
-    
-    flash("Invalid username or password", "danger")
-    return redirect(url_for('reader.home'))
-    
-@reader_bp.route('/logout')
 
 #def authenticate_windows(username, password):
 #    try:
@@ -87,6 +206,7 @@ def login():
 #    except Exception:
 #        return False 
 
+@reader_bp.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('reader.home'))
