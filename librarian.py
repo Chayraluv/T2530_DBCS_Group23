@@ -22,7 +22,10 @@ def get_db_connection():
 # PASSWORD HASHING
 # =========================
 def hash_pwd(password: str, rounds=12) -> str:
-    return bcrypt.hashpw(password.encode(), bcrypt.gensalt(rounds)).decode()
+    return bcrypt.hashpw(
+        password.encode(),
+        bcrypt.gensalt(rounds)
+    ).decode()
 
 # =========================
 # CREATE READER ACCOUNT (SP)
@@ -45,81 +48,79 @@ def create_member():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-
         cursor.execute(
-            "EXEC dbo.CreateReaderAccount ?, ?",
+            "EXEC LibraryData.CreateReaderAccount ?, ?",
             (username, hashed)
         )
-
         conn.commit()
         flash("Reader account created successfully.", "success")
-
     except Exception as e:
         flash("Failed to create account.", "danger")
         print("CreateReaderAccount error:", e)
-
     finally:
         conn.close()
 
     return redirect(url_for('librarian.dashboard'))
 
 # =========================
-# ADD BOOK (SP)
+# ADD BOOK (SP) + CATEGORY
 # =========================
 @librarian_bp.route('/librarian/add_book', methods=['POST'])
 def add_book():
+    if session.get('role') != 'Librarian':
+        flash("Access denied.", "danger")
+        return redirect(url_for('reader.home'))
+
     title = request.form.get('title')
     author = request.form.get('author')
+    category = request.form.get('category')
 
-    if not title or not author:
-        flash("Missing book details.", "danger")
+    if not title or not author or not category:
+        flash("All book fields are required.", "danger")
         return redirect(url_for('librarian.dashboard'))
 
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-
         cursor.execute(
-            "EXEC dbo.AddBook ?, ?",
-            (title, author)
+            "EXEC LibraryData.AddBook ?, ?, ?",
+            (title, author, category)
         )
-
         conn.commit()
         flash("Book added successfully.", "success")
-
     except Exception as e:
         flash("Failed to add book.", "danger")
         print("AddBook error:", e)
-
     finally:
         conn.close()
 
     return redirect(url_for('librarian.dashboard'))
 
 # =========================
-# EDIT BOOK (SP)
+# EDIT BOOK (SP) + CATEGORY
 # =========================
 @librarian_bp.route('/librarian/edit_book/<int:book_id>', methods=['POST'])
 def edit_book(book_id):
+    if session.get('role') != 'Librarian':
+        flash("Access denied.", "danger")
+        return redirect(url_for('reader.home'))
+
     title = request.form.get('title')
     author = request.form.get('author')
+    category = request.form.get('category')
 
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-
         cursor.execute(
-            "EXEC dbo.EditBook ?, ?, ?",
-            (book_id, title, author)
+            "EXEC LibraryData.EditBook ?, ?, ?, ?",
+            (book_id, title, author, category)
         )
-
         conn.commit()
-        flash("Book updated.", "success")
-
+        flash("Book updated successfully.", "success")
     except Exception as e:
         flash("Failed to update book.", "danger")
         print("EditBook error:", e)
-
     finally:
         conn.close()
 
@@ -130,22 +131,19 @@ def edit_book(book_id):
 # =========================
 @librarian_bp.route('/librarian/delete_book/<int:book_id>')
 def delete_book(book_id):
+    if session.get('role') != 'Librarian':
+        flash("Access denied.", "danger")
+        return redirect(url_for('reader.home'))
+
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-
-        cursor.execute(
-            "EXEC dbo.DeleteBook ?",
-            (book_id,)
-        )
-
+        cursor.execute("EXEC LibraryData.DeleteBook ?", (book_id,))
         conn.commit()
         flash("Book deleted.", "success")
-
     except Exception as e:
         flash("Cannot delete book.", "danger")
         print("DeleteBook error:", e)
-
     finally:
         conn.close()
 
@@ -156,22 +154,19 @@ def delete_book(book_id):
 # =========================
 @librarian_bp.route('/librarian/toggle_status/<int:book_id>')
 def toggle_status(book_id):
+    if session.get('role') != 'Librarian':
+        flash("Access denied.", "danger")
+        return redirect(url_for('reader.home'))
+
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-
-        cursor.execute(
-            "EXEC dbo.ToggleBookStatus ?",
-            (book_id,)
-        )
-
+        cursor.execute("EXEC LibraryData.ToggleBookStatus ?", (book_id,))
         conn.commit()
         flash("Book status updated.", "success")
-
     except Exception as e:
         flash("Failed to toggle status.", "danger")
         print("ToggleBookStatus error:", e)
-
     finally:
         conn.close()
 
@@ -198,24 +193,23 @@ def reset_password():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-
         cursor.execute(
-            "EXEC dbo.ResetUserPassword ?, ?",
+            "EXEC LibraryData.ResetUserPassword ?, ?",
             (username, hashed)
         )
-
         conn.commit()
         flash("Password reset successfully.", "success")
-
     except Exception as e:
         flash("Password reset failed.", "danger")
         print("ResetUserPassword error:", e)
-
     finally:
         conn.close()
 
     return redirect(url_for('librarian.dashboard'))
 
+# =========================
+# DELETE USER (SP)
+# =========================
 @librarian_bp.route('/librarian/delete_user/<username>')
 def delete_user(username):
     if session.get('role') != 'Librarian':
@@ -229,24 +223,19 @@ def delete_user(username):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-
-        cursor.execute("EXEC dbo.DeleteUser ?", (username,))
+        cursor.execute("EXEC LibraryData.DeleteUser ?", (username,))
         conn.commit()
-
         flash(f"User {username} deleted.", "success")
-
     except Exception as e:
         flash("Failed to delete user.", "danger")
         print("DeleteUser error:", e)
-
     finally:
         conn.close()
 
     return redirect(url_for('librarian.dashboard'))
 
-
 # =========================
-# DASHBOARD (READ ONLY)
+# DASHBOARD
 # =========================
 @librarian_bp.route('/librarian/dashboard')
 def dashboard():
@@ -254,17 +243,19 @@ def dashboard():
         flash("Access denied.", "danger")
         return redirect(url_for('reader.home'))
 
-    if session.get('force_pwd_change'):
-        flash("Change password before accessing dashboard.", "danger")
-        return redirect(url_for('reader.change_password'))
-
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT BookID, Title, Author, Available FROM Books")
+    cursor.execute("""
+        SELECT BookID, Title, Author, Category, Available
+        FROM LibraryData.Books
+    """)
     inventory = cursor.fetchall()
 
-    cursor.execute("SELECT Username, Role FROM Accounts")
+    cursor.execute("""
+        SELECT Username, Role
+        FROM LibraryData.Accounts
+    """)
     members = cursor.fetchall()
 
     conn.close()

@@ -183,9 +183,18 @@
 
         <!-- ADD BOOK -->
         <form action="{{ url_for('librarian.add_book') }}" method="POST"
-              style="display:flex; gap:10px; margin-bottom:20px;">
+            style="display:flex; gap:10px; margin-bottom:20px; align-items:center;">
             <input type="text" name="title" placeholder="Book Title" required style="flex:2;">
             <input type="text" name="author" placeholder="Author Name" required style="flex:1;">
+
+            <select name="category" required>
+                <option value="">Select Category</option>
+                <option value="Fiction">Fiction</option>
+                <option value="Science Fiction">Science Fiction</option>
+                <option value="Fantasy">Fantasy</option>
+                <option value="Technology">Technology</option>
+            </select>
+
             <button class="btn-action btn-add">Add Book</button>
         </form>
 
@@ -193,6 +202,7 @@
             <thead>
                 <tr>
                     <th>Title & Author</th>
+                    <th>Category</th>
                     <th>Status</th>
                     <th>Toggle</th>
                     <th>Actions</th>
@@ -203,24 +213,42 @@
                 <tr>
                     <td>
                         <form action="{{ url_for('librarian.edit_book', book_id=book.BookID) }}"
-                              method="POST" style="display:flex; gap:5px;">
+                            method="POST" style="display:flex; gap:5px;">
                             <input type="text" name="title" value="{{ book.Title }}" required>
                             <input type="text" name="author" value="{{ book.Author }}" required>
-                            <button class="btn-action btn-save">Save</button>
-                        </form>
                     </td>
+
+                    <td>
+                        <select name="category" required>
+                            {% set categories = ['Fiction', 'Science Fiction', 'Fantasy', 'Technology'] %}
+                            {% for cat in categories %}
+                                <option value="{{ cat }}"
+                                    {% if book.Category == cat %}selected{% endif %}>
+                                    {{ cat }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </td>
+
                     <td class="{{ 'status-available' if book.Available else 'status-borrowed' }}">
                         {{ "Available" if book.Available else "Borrowed" }}
                     </td>
+
                     <td>
                         <a href="{{ url_for('librarian.toggle_status', book_id=book.BookID) }}">
                             Change Status
                         </a>
                     </td>
+
                     <td>
+                        <button class="btn-action btn-save">Save</button>
+                        </form>
+
                         <a href="{{ url_for('librarian.delete_book', book_id=book.BookID) }}"
-                           class="btn-action btn-delete"
-                           onclick="return confirm('Delete book?')">Delete</a>
+                        class="btn-action btn-delete"
+                        onclick="return confirm('Delete book?')">
+                            Delete
+                        </a>
                     </td>
                 </tr>
                 {% endfor %}
@@ -233,6 +261,7 @@
             </p>
         {% endif %}
     </div>
+
 
 </div>
 </body>

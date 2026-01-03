@@ -7,3 +7,7 @@ __pycache__/
 
 # SSMS / Visual Studio files
 SSMS/.vs/
+
+# Ignore TDE Encryption Keys
+Backup/*.cer
+Backup/*.pvk
