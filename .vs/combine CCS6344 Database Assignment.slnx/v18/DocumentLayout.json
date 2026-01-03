@@ -39,62 +39,62 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "accounts_security.sql - localhost.MMU_Library (LAPTOP-0GF9F474\\cahay (76))",
+              "Title": "accounts_security.sql - localhost.master (LAPTOP-0GF9F474\\cahay (51))",
               "DocumentMoniker": "C:\\sem 2 year 3\\database and cloud security\\combine CCS6344 Database Assignment\\sql\\accounts_security.sql",
               "RelativeDocumentMoniker": "sql\\accounts_security.sql",
-              "ToolTip": "C:\\sem 2 year 3\\database and cloud security\\combine CCS6344 Database Assignment\\sql\\accounts_security.sql - localhost.MMU_Library (LAPTOP-0GF9F474\\cahay (76))*",
-              "RelativeToolTip": "sql\\accounts_security.sql - localhost.MMU_Library (LAPTOP-0GF9F474\\cahay (76))*",
+              "ToolTip": "C:\\sem 2 year 3\\database and cloud security\\combine CCS6344 Database Assignment\\sql\\accounts_security.sql - localhost.master (LAPTOP-0GF9F474\\cahay (51))",
+              "RelativeToolTip": "sql\\accounts_security.sql - localhost.master (LAPTOP-0GF9F474\\cahay (51))",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
               "WhenOpened": "2026-01-03T03:53:00.848Z",
-              "EditorCaption": " - localhost.MMU_Library (LAPTOP-0GF9F474\\cahay (76))"
+              "EditorCaption": " - localhost.master (LAPTOP-0GF9F474\\cahay (51))"
             },
             {
               "$type": "Document",
               "DocumentIndex": 1,
-              "Title": "dbo.Accounts.Table.sql - localhost.master (LAPTOP-0GF9F474\\cahay (66))",
+              "Title": "dbo.Accounts.Table.sql",
               "DocumentMoniker": "C:\\sem 2 year 3\\database and cloud security\\combine CCS6344 Database Assignment\\sql\\dbo.Accounts.Table.sql",
               "RelativeDocumentMoniker": "sql\\dbo.Accounts.Table.sql",
-              "ToolTip": "C:\\sem 2 year 3\\database and cloud security\\combine CCS6344 Database Assignment\\sql\\dbo.Accounts.Table.sql - localhost.master (LAPTOP-0GF9F474\\cahay (66))",
-              "RelativeToolTip": "sql\\dbo.Accounts.Table.sql - localhost.master (LAPTOP-0GF9F474\\cahay (66))",
+              "ToolTip": "C:\\sem 2 year 3\\database and cloud security\\combine CCS6344 Database Assignment\\sql\\dbo.Accounts.Table.sql",
+              "RelativeToolTip": "sql\\dbo.Accounts.Table.sql",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
               "WhenOpened": "2026-01-03T03:49:58.01Z",
-              "EditorCaption": " - localhost.master (LAPTOP-0GF9F474\\cahay (66))"
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 2,
-              "Title": "dbo.Books.Table.sql - localhost.master (LAPTOP-0GF9F474\\cahay (68))",
+              "Title": "dbo.Books.Table.sql",
               "DocumentMoniker": "C:\\sem 2 year 3\\database and cloud security\\combine CCS6344 Database Assignment\\sql\\dbo.Books.Table.sql",
               "RelativeDocumentMoniker": "sql\\dbo.Books.Table.sql",
-              "ToolTip": "C:\\sem 2 year 3\\database and cloud security\\combine CCS6344 Database Assignment\\sql\\dbo.Books.Table.sql - localhost.master (LAPTOP-0GF9F474\\cahay (68))",
-              "RelativeToolTip": "sql\\dbo.Books.Table.sql - localhost.master (LAPTOP-0GF9F474\\cahay (68))",
+              "ToolTip": "C:\\sem 2 year 3\\database and cloud security\\combine CCS6344 Database Assignment\\sql\\dbo.Books.Table.sql",
+              "RelativeToolTip": "sql\\dbo.Books.Table.sql",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
               "WhenOpened": "2026-01-03T03:50:00.507Z",
-              "EditorCaption": " - localhost.master (LAPTOP-0GF9F474\\cahay (68))"
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 3,
-              "Title": "transaction_security.sql - localhost.master (LAPTOP-0GF9F474\\cahay (70))",
+              "Title": "transaction_security.sql",
               "DocumentMoniker": "C:\\sem 2 year 3\\database and cloud security\\combine CCS6344 Database Assignment\\sql\\transaction_security.sql",
               "RelativeDocumentMoniker": "sql\\transaction_security.sql",
-              "ToolTip": "C:\\sem 2 year 3\\database and cloud security\\combine CCS6344 Database Assignment\\sql\\transaction_security.sql - localhost.master (LAPTOP-0GF9F474\\cahay (70))",
-              "RelativeToolTip": "sql\\transaction_security.sql - localhost.master (LAPTOP-0GF9F474\\cahay (70))",
+              "ToolTip": "C:\\sem 2 year 3\\database and cloud security\\combine CCS6344 Database Assignment\\sql\\transaction_security.sql",
+              "RelativeToolTip": "sql\\transaction_security.sql",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
               "WhenOpened": "2026-01-03T03:50:02.624Z",
-              "EditorCaption": " - localhost.master (LAPTOP-0GF9F474\\cahay (70))"
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 4,
-              "Title": "dbo.BorrowHistory.Table.sql - localhost.master (LAPTOP-0GF9F474\\cahay (69))",
+              "Title": "dbo.BorrowHistory.Table.sql",
               "DocumentMoniker": "C:\\sem 2 year 3\\database and cloud security\\combine CCS6344 Database Assignment\\sql\\dbo.BorrowHistory.Table.sql",
               "RelativeDocumentMoniker": "sql\\dbo.BorrowHistory.Table.sql",
-              "ToolTip": "C:\\sem 2 year 3\\database and cloud security\\combine CCS6344 Database Assignment\\sql\\dbo.BorrowHistory.Table.sql - localhost.master (LAPTOP-0GF9F474\\cahay (69))",
-              "RelativeToolTip": "sql\\dbo.BorrowHistory.Table.sql - localhost.master (LAPTOP-0GF9F474\\cahay (69))",
+              "ToolTip": "C:\\sem 2 year 3\\database and cloud security\\combine CCS6344 Database Assignment\\sql\\dbo.BorrowHistory.Table.sql",
+              "RelativeToolTip": "sql\\dbo.BorrowHistory.Table.sql",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
               "WhenOpened": "2026-01-03T03:50:01.623Z",
-              "EditorCaption": " - localhost.master (LAPTOP-0GF9F474\\cahay (69))"
+              "EditorCaption": ""
             }
           ]
         }

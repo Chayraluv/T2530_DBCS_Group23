@@ -4,6 +4,8 @@ import pyodbc
 import bcrypt
 from datetime import datetime, timedelta
 
+MAX_ATTEMPTS = 3
+LOCKOUT_MINUTES = 3
 PASSWORD_EXPIRY_DAYS = 180  # 6 months
 
 # Ensure this variable name is exactly 'reader_bp'
@@ -68,6 +70,7 @@ def login():
     # 🔒 CHECK LOCKOUT
     if lockout_until and lockout_until > datetime.now():
         remaining = int((lockout_until - datetime.now()).total_seconds() / 60) + 1
+        conn.close()
         flash(f"Account locked. Try again in {remaining} minute(s).", "danger")
         return redirect(url_for('reader.home'))
 
@@ -75,12 +78,14 @@ def login():
     if not check_pwd(password, db_password) or db_role != selected_role:
         failed += 1
 
-        if failed >= 3:
+        if failed >= MAX_ATTEMPTS:
             cursor.execute("""
-                UPDATE Accounts
-                SET FailedAttempts = ?, LockoutUntil = DATEADD(MINUTE, 3, GETDATE())
+                UPDATE dbo.Accounts
+                SET FailedAttempts = ?, 
+                    LockoutUntil = DATEADD(MINUTE, ?, GETDATE())
                 WHERE Username = ?
-            """, (failed, username))
+            """, (failed, LOCKOUT_MINUTES, username))
+
             conn.commit()
             conn.close()
 
@@ -96,7 +101,7 @@ def login():
             conn.commit()
             conn.close()
 
-            flash(f"Invalid login. Attempt {failed}/3.", "danger")
+            flash(f"Invalid login. Attempt {failed}/{MAX_ATTEMPTS}.", "danger")
             return redirect(url_for('reader.home'))
 
     # ✅ SUCCESSFUL LOGIN → RESET SECURITY
@@ -113,14 +118,8 @@ def login():
 
     # 🔐 PASSWORD POLICY
     if db_role == 'Librarian':
-        if pwd_created is None:
+        if not pwd_created or pwd_created < datetime.now() - timedelta(days=PASSWORD_EXPIRY_DAYS):
             session['force_pwd_change'] = True
-            session['pwd_reason'] = 'first'
-            return redirect(url_for('reader.change_password'))
-
-        if pwd_created < datetime.now() - timedelta(days=180):
-            session['force_pwd_change'] = True
-            session['pwd_reason'] = 'expired'
             return redirect(url_for('reader.change_password'))
 
         return redirect(url_for('librarian.dashboard'))
