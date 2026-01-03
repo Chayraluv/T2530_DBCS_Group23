@@ -23,23 +23,13 @@ app.register_blueprint(librarian_bp)
 app.register_blueprint(transactions_bp)
 
 def get_db_connection():
-    # Update these values to match your local setup
-    # Original connection string (Adibah's setup)
-    # conn_str = (
-    #     "Driver={ODBC Driver 18 for SQL Server};"
-    #     "Server=localhost;"
-    #     "Database=MMU_Library;"
-    #     "Trusted_Connection=yes;"
-    #     "TrustServerCertificate=yes;"
-    # )
-
-    # Updated connection string for SQLEXPRESS (Tiffany's setup)
+        # Update these values to match your local setup
     conn_str = (
-    "DRIVER={ODBC Driver 18 for SQL Server};"
-    "SERVER=localhost\\SQLEXPRESS;"
-    "DATABASE=MMU_Library;"
-    "Trusted_Connection=yes;"
-    "Encrypt=no;"
+        "Driver={ODBC Driver 18 for SQL Server};"
+        "Server=localhost;" #\\SQLEXPRESS;
+        "Database=MMU_Library;"
+        "Trusted_Connection=yes;"
+        "TrustServerCertificate=yes;"
     )
     return pyodbc.connect(conn_str)
 

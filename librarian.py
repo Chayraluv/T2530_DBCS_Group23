@@ -7,22 +7,12 @@ librarian_bp = Blueprint('librarian', __name__)
 
 # Connection helper (matches your transaction.py setup)
 def get_db_connection():
-    # Original connection string (Adibah's setup)
-    # conn_str = (
-    #     "Driver={ODBC Driver 18 for SQL Server};"
-    #     "Server=localhost;"
-    #     "Database=MMU_Library;"
-    #     "Trusted_Connection=yes;"
-    #     "TrustServerCertificate=yes;"
-    # )
-
-    # Updated connection string for SQLEXPRESS (Tiffany's setup)
     conn_str = (
-    "DRIVER={ODBC Driver 18 for SQL Server};"
-    "SERVER=localhost\\SQLEXPRESS;"
-    "DATABASE=MMU_Library;"
-    "Trusted_Connection=yes;"
-    "Encrypt=no;"
+        "Driver={ODBC Driver 18 for SQL Server};"
+        "Server=localhost;" #\\SQLEXPRESS;
+        "Database=MMU_Library;"
+        "Trusted_Connection=yes;"
+        "TrustServerCertificate=yes;"
     )
     return pyodbc.connect(conn_str)
 

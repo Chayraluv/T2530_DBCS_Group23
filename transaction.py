@@ -4,44 +4,21 @@ from datetime import datetime, timedelta
 import pyodbc
 
 transactions_bp = Blueprint('transactions', __name__)
-
-'''# Mock book data
-books_data = [
-    {"id": 0, "title": "The Great Gatsby", "author": "F. Scott Fitzgerald", "category": "Fiction", "available": True},
-    {"id": 1, "title": "1984", "author": "George Orwell", "category": "Science Fiction", "available": True},
-    {"id": 2, "title": "The Hobbit", "author": "J.R.R. Tolkien", "category": "Fantasy", "available": True},
-    {"id": 3, "title": "Python Programming", "author": "MMU Press", "category": "Technology", "available": True}
-]
-
-# Track borrowed books per user
-borrowed_books = {}
-# Track borrow/return history per user
-borrow_history = {}'''
-
 MAX_BORROW_LIMIT = 3
 
 
 # Connection helper function
 def get_db_connection():
     # Using your specific setup: localhost, Windows Auth, and Encryption trust
-    # Original connection string (Adibah's setup)
-    # conn_str = (
-    #     "Driver={ODBC Driver 18 for SQL Server};"
-    #     "Server=localhost;"
-    #     "Database=MMU_Library;"
-    #     "Trusted_Connection=yes;"
-    #     "TrustServerCertificate=yes;"
-    # )
-
-    # Updated connection string for SQLEXPRESS (Tiffany's setup)
     conn_str = (
-    "DRIVER={ODBC Driver 18 for SQL Server};"
-    "SERVER=localhost\\SQLEXPRESS;"
-    "DATABASE=MMU_Library;"
-    "Trusted_Connection=yes;"
-    "Encrypt=no;"
+        "Driver={ODBC Driver 18 for SQL Server};"
+        "Server=localhost;"
+        "Database=MMU_Library;"
+        "Trusted_Connection=yes;"
+        "TrustServerCertificate=yes;"
     )
     return pyodbc.connect(conn_str)
+    
 
 def log_action(username, book_id, action):
     try:

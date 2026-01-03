@@ -1,0 +1,84 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\sem 2 year 3\\database and cloud security\\combine CCS6344 Database Assignment\\sql\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\sem 2 year 3\\database and cloud security\\combine CCS6344 Database Assignment\\sql\\dbo.Accounts.Table.sql||{B5A506EB-11BE-4782-9A18-21265C2CA0B4}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:dbo.Accounts.Table.sql||{B5A506EB-11BE-4782-9A18-21265C2CA0B4}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\sem 2 year 3\\database and cloud security\\combine CCS6344 Database Assignment\\sql\\dbo.BorrowHistory.Table.sql||{B5A506EB-11BE-4782-9A18-21265C2CA0B4}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:dbo.BorrowHistory.Table.sql||{B5A506EB-11BE-4782-9A18-21265C2CA0B4}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\sem 2 year 3\\database and cloud security\\combine CCS6344 Database Assignment\\sql\\dbo.Books.Table.sql||{B5A506EB-11BE-4782-9A18-21265C2CA0B4}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:dbo.Books.Table.sql||{B5A506EB-11BE-4782-9A18-21265C2CA0B4}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\sem 2 year 3\\database and cloud security\\combine CCS6344 Database Assignment\\sql\\transaction_security.sql||{B5A506EB-11BE-4782-9A18-21265C2CA0B4}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:transaction_security.sql||{B5A506EB-11BE-4782-9A18-21265C2CA0B4}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 1,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "dbo.BorrowHistory.Table.sql - localhost.MMU_Library (LAPTOP-0GF9F474\\cahay (72))",
+              "DocumentMoniker": "C:\\sem 2 year 3\\database and cloud security\\combine CCS6344 Database Assignment\\sql\\dbo.BorrowHistory.Table.sql",
+              "RelativeDocumentMoniker": "dbo.BorrowHistory.Table.sql",
+              "ToolTip": "C:\\sem 2 year 3\\database and cloud security\\combine CCS6344 Database Assignment\\sql\\dbo.BorrowHistory.Table.sql - localhost.MMU_Library (LAPTOP-0GF9F474\\cahay (72))",
+              "RelativeToolTip": "dbo.BorrowHistory.Table.sql - localhost.MMU_Library (LAPTOP-0GF9F474\\cahay (72))",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2026-01-02T23:54:17.292Z",
+              "EditorCaption": " - localhost.MMU_Library (LAPTOP-0GF9F474\\cahay (72))"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "dbo.Accounts.Table.sql - localhost.master (LAPTOP-0GF9F474\\cahay (63))",
+              "DocumentMoniker": "C:\\sem 2 year 3\\database and cloud security\\combine CCS6344 Database Assignment\\sql\\dbo.Accounts.Table.sql",
+              "RelativeDocumentMoniker": "dbo.Accounts.Table.sql",
+              "ToolTip": "C:\\sem 2 year 3\\database and cloud security\\combine CCS6344 Database Assignment\\sql\\dbo.Accounts.Table.sql - localhost.master (LAPTOP-0GF9F474\\cahay (63))",
+              "RelativeToolTip": "dbo.Accounts.Table.sql - localhost.master (LAPTOP-0GF9F474\\cahay (63))",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2026-01-02T23:54:15.566Z",
+              "EditorCaption": " - localhost.master (LAPTOP-0GF9F474\\cahay (63))"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "transaction_security.sql - localhost.master (LAPTOP-0GF9F474\\cahay (73))",
+              "DocumentMoniker": "C:\\sem 2 year 3\\database and cloud security\\combine CCS6344 Database Assignment\\sql\\transaction_security.sql",
+              "RelativeDocumentMoniker": "transaction_security.sql",
+              "ToolTip": "C:\\sem 2 year 3\\database and cloud security\\combine CCS6344 Database Assignment\\sql\\transaction_security.sql - localhost.master (LAPTOP-0GF9F474\\cahay (73))",
+              "RelativeToolTip": "transaction_security.sql - localhost.master (LAPTOP-0GF9F474\\cahay (73))",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2026-01-02T23:54:17.593Z",
+              "EditorCaption": " - localhost.master (LAPTOP-0GF9F474\\cahay (73))"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "dbo.Books.Table.sql - localhost.MMU_Library (LAPTOP-0GF9F474\\cahay (67))",
+              "DocumentMoniker": "C:\\sem 2 year 3\\database and cloud security\\combine CCS6344 Database Assignment\\sql\\dbo.Books.Table.sql",
+              "RelativeDocumentMoniker": "dbo.Books.Table.sql",
+              "ToolTip": "C:\\sem 2 year 3\\database and cloud security\\combine CCS6344 Database Assignment\\sql\\dbo.Books.Table.sql - localhost.MMU_Library (LAPTOP-0GF9F474\\cahay (67))",
+              "RelativeToolTip": "dbo.Books.Table.sql - localhost.MMU_Library (LAPTOP-0GF9F474\\cahay (67))",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2026-01-02T23:54:16.765Z",
+              "EditorCaption": " - localhost.MMU_Library (LAPTOP-0GF9F474\\cahay (67))"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
