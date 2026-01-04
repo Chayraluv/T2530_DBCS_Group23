@@ -19,6 +19,15 @@ def get_db_connection():
     )
     return pyodbc.connect(conn_str)
 
+def get_account_id(cursor, username):
+    cursor.execute(
+        "SELECT AccountID FROM LibraryData.Accounts WHERE Username = ?",
+        (username,)
+    )
+    row = cursor.fetchone()
+    return row[0] if row else None
+
+
 # =========================
 # BORROW BOOK
 # =========================
@@ -36,59 +45,54 @@ def borrow(username, book_id):
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # 🔢 Check borrow limit
+        account_id = get_account_id(cursor, username)
+        if not account_id:
+            conn.close()
+            flash("User not found.", "danger")
+            return redirect(url_for('transactions.show_books', username=username))
+
+        # Borrow limit check
         cursor.execute("""
             SELECT COUNT(*)
-            FROM LibraryData.Books b
-            JOIN LibraryData.BorrowHistory h ON b.BookID = h.BookID
-            WHERE h.Username = ?
-              AND b.Available = 0
-              AND h.Action = 'borrow'
-              AND h.Timestamp = (
-                    SELECT MAX(Timestamp)
-                    FROM LibraryData.BorrowHistory
-                    WHERE BookID = b.BookID
-              )
-        """, (username,))
+            FROM LibraryData.BorrowHistory
+            WHERE AccountID = ?
+              AND Status = 'borrow'
+              AND ReturnDate IS NULL
+        """, (account_id,))
+        borrowed_count = cursor.fetchone()[0]
 
-        net_borrowed = cursor.fetchone()[0]
-
-        if net_borrowed >= MAX_BORROW_LIMIT:
+        if borrowed_count >= MAX_BORROW_LIMIT:
             conn.close()
-            flash(f"Limit reached! You currently have {net_borrowed} books.", "danger")
+            flash("Borrow limit reached.", "danger")
             return redirect(url_for('transactions.show_books', username=username))
 
-        # 🔍 Check availability
-        cursor.execute("""
-            SELECT Available
-            FROM LibraryData.Books
-            WHERE BookID = ?
-        """, (book_id,))
+        # Check availability
+        cursor.execute(
+            "SELECT Available FROM LibraryData.Books WHERE BookID = ?",
+            (book_id,)
+        )
         row = cursor.fetchone()
 
-        if not row:
+        if not row or row[0] == 0:
             conn.close()
-            flash("Book does not exist.", "danger")
+            flash("Book is not available.", "danger")
             return redirect(url_for('transactions.show_books', username=username))
 
-        if row[0] == 0:
-            conn.close()
-            flash("Book is already borrowed.", "danger")
-            return redirect(url_for('transactions.show_books', username=username))
-
-        # 📅 Borrow book
+        # ✅ SET DUE DATE
         due_date = datetime.now() + timedelta(days=14)
 
         cursor.execute("""
             UPDATE LibraryData.Books
-            SET Available = 0, DueDate = ?
+            SET Available = 0,
+                DueDate = ?
             WHERE BookID = ?
         """, (due_date, book_id))
 
         cursor.execute("""
-            INSERT INTO LibraryData.BorrowHistory (Username, BookID, Action)
-            VALUES (?, ?, 'borrow')
-        """, (username, book_id))
+            INSERT INTO LibraryData.BorrowHistory
+                (AccountID, BookID, BorrowDate, Status)
+            VALUES (?, ?, GETDATE(), 'borrow')
+        """, (account_id, book_id))
 
         conn.commit()
         conn.close()
@@ -117,16 +121,24 @@ def return_book(username, book_id):
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        cursor.execute("""
-            UPDATE LibraryData.Books
-            SET Available = 1, DueDate = NULL
-            WHERE BookID = ?
-        """, (book_id,))
+        account_id = get_account_id(cursor, username)
 
         cursor.execute("""
-            INSERT INTO LibraryData.BorrowHistory (Username, BookID, Action)
-            VALUES (?, ?, 'return')
-        """, (username, book_id))
+            UPDATE LibraryData.BorrowHistory
+            SET ReturnDate = GETDATE(),
+                Status = 'return'
+            WHERE AccountID = ?
+              AND BookID = ?
+              AND ReturnDate IS NULL
+        """, (account_id, book_id))
+
+        # ✅ CLEAR DUE DATE
+        cursor.execute("""
+            UPDATE LibraryData.Books
+            SET Available = 1,
+                DueDate = NULL
+            WHERE BookID = ?
+        """, (book_id,))
 
         conn.commit()
         conn.close()
@@ -154,6 +166,13 @@ def show_books(username):
     conn = get_db_connection()
     cursor = conn.cursor()
 
+    account_id = get_account_id(cursor, username)
+    if not account_id:
+        conn.close()
+        flash("User not found.", "danger")
+        return redirect(url_for('reader.home'))
+
+    # All books
     cursor.execute("""
         SELECT 
             BookID AS id,
@@ -168,6 +187,7 @@ def show_books(username):
         for row in cursor.fetchall()
     ]
 
+    # My borrowed books with REAL due date
     cursor.execute("""
         SELECT 
             b.BookID AS id,
@@ -175,16 +195,12 @@ def show_books(username):
             b.Author AS author,
             b.DueDate AS due_date
         FROM LibraryData.Books b
-        JOIN LibraryData.BorrowHistory h ON b.BookID = h.BookID
-        WHERE h.Username = ?
-          AND b.Available = 0
-          AND h.Action = 'borrow'
-          AND h.Timestamp = (
-                SELECT MAX(Timestamp)
-                FROM LibraryData.BorrowHistory
-                WHERE BookID = b.BookID
-          )
-    """, (username,))
+        JOIN LibraryData.BorrowHistory bh ON b.BookID = bh.BookID
+        WHERE bh.AccountID = ?
+          AND bh.Status = 'borrow'
+          AND bh.ReturnDate IS NULL
+    """, (account_id,))
+
     my_books = [
         dict(zip([col[0] for col in cursor.description], row))
         for row in cursor.fetchall()
@@ -245,6 +261,8 @@ def search(username):
         for row in cursor.fetchall()
     ]
 
+    account_id = get_account_id(cursor, username)
+
     cursor.execute("""
         SELECT 
             b.BookID AS id,
@@ -252,16 +270,12 @@ def search(username):
             b.Author AS author,
             b.DueDate AS due_date
         FROM LibraryData.Books b
-        JOIN LibraryData.BorrowHistory h ON b.BookID = h.BookID
-        WHERE h.Username = ?
-          AND b.Available = 0
-          AND h.Action = 'borrow'
-          AND h.Timestamp = (
-                SELECT MAX(Timestamp)
-                FROM LibraryData.BorrowHistory
-                WHERE BookID = b.BookID
-          )
-    """, (username,))
+        JOIN LibraryData.BorrowHistory bh ON b.BookID = bh.BookID
+        WHERE bh.AccountID = ?
+          AND bh.Status = 'borrow'
+          AND bh.ReturnDate IS NULL
+    """, (account_id,))
+
     my_books = [
         dict(zip([col[0] for col in cursor.description], row))
         for row in cursor.fetchall()
