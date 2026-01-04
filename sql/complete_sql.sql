@@ -360,7 +360,7 @@ GO
 INSERT INTO LibraryData.Accounts (Username, [Password], [Role], CreatedDate, FailedAttempts)
 VALUES (
     'librarian', 
-    '$2b$12$TguWcPbjDKl3g/eI2B6T8OZZu7bkHRpkF2nAk0y9fsDIDwciYteHe', -- Your provided hash
+    '$2b$12$TguWcPbjDKl3g/eI2B6T8OZZu7bkHRpkF2nAk0y9fsDIDwciYteHe', -- Your provided hash -- "pa$$w0rd"
     'Librarian', 
     GETDATE(), 
     0
