@@ -175,7 +175,7 @@
         </table>
     </div>
 
-    <!-- ================= INVENTORY & BOOK MANAGEMENT ================= -->
+        <!-- ================= INVENTORY & BOOK MANAGEMENT ================= -->
     <div class="section-box">
         <h3>📦 Inventory & Book Management</h3>
 
@@ -183,21 +183,21 @@
 
         <!-- ADD BOOK -->
         <form action="{{ url_for('librarian.add_book') }}" method="POST"
-            style="display:flex; gap:10px; margin-bottom:20px; align-items:center;">
+              style="display:flex; gap:10px; margin-bottom:20px; align-items:center;">
             <input type="text" name="title" placeholder="Book Title" required style="flex:2;">
             <input type="text" name="author" placeholder="Author Name" required style="flex:1;">
 
             <select name="category" required>
                 <option value="">Select Category</option>
-                <option value="Fiction">Fiction</option>
-                <option value="Science Fiction">Science Fiction</option>
-                <option value="Fantasy">Fantasy</option>
-                <option value="Technology">Technology</option>
+                {% for cat in categories %}
+                    <option value="{{ cat }}">{{ cat }}</option>
+                {% endfor %}
             </select>
 
             <button class="btn-action btn-add">Add Book</button>
         </form>
 
+        <!-- BOOK LIST -->
         <table>
             <thead>
                 <tr>
@@ -213,14 +213,13 @@
                 <tr>
                     <td>
                         <form action="{{ url_for('librarian.edit_book', book_id=book.BookID) }}"
-                            method="POST" style="display:flex; gap:5px;">
+                              method="POST" style="display:flex; gap:5px;">
                             <input type="text" name="title" value="{{ book.Title }}" required>
                             <input type="text" name="author" value="{{ book.Author }}" required>
                     </td>
 
                     <td>
                         <select name="category" required>
-                            {% set categories = ['Fiction', 'Science Fiction', 'Fantasy', 'Technology'] %}
                             {% for cat in categories %}
                                 <option value="{{ cat }}"
                                     {% if book.Category == cat %}selected{% endif %}>
@@ -245,8 +244,8 @@
                         </form>
 
                         <a href="{{ url_for('librarian.delete_book', book_id=book.BookID) }}"
-                        class="btn-action btn-delete"
-                        onclick="return confirm('Delete book?')">
+                           class="btn-action btn-delete"
+                           onclick="return confirm('Delete book?')">
                             Delete
                         </a>
                     </td>
@@ -261,7 +260,6 @@
             </p>
         {% endif %}
     </div>
-
 
 </div>
 </body>

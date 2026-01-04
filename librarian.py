@@ -246,17 +246,30 @@ def dashboard():
     conn = get_db_connection()
     cursor = conn.cursor()
 
+    # 📚 Inventory
     cursor.execute("""
         SELECT BookID, Title, Author, Category, Available
         FROM LibraryData.Books
+        ORDER BY BookID
     """)
     inventory = cursor.fetchall()
 
+    # 👤 Members
     cursor.execute("""
         SELECT Username, Role
         FROM LibraryData.Accounts
+        ORDER BY Username
     """)
     members = cursor.fetchall()
+
+    # 🏷️ Categories (SOURCE OF TRUTH)
+    cursor.execute("""
+        SELECT DISTINCT Category
+        FROM LibraryData.Books
+        WHERE Category IS NOT NULL
+        ORDER BY Category
+    """)
+    categories = [row[0] for row in cursor.fetchall()]
 
     conn.close()
 
@@ -264,6 +277,7 @@ def dashboard():
         "librarian_dashboard.html",
         inventory=inventory,
         members=members,
+        categories=categories,   # ✅ THIS FIXES EVERYTHING
         now=datetime.now()
     )
 

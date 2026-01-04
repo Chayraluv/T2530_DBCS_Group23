@@ -166,13 +166,7 @@ def show_books(username):
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    account_id = get_account_id(cursor, username)
-    if not account_id:
-        conn.close()
-        flash("User not found.", "danger")
-        return redirect(url_for('reader.home'))
-
-    # All books
+    # 📚 ALL BOOKS
     cursor.execute("""
         SELECT 
             BookID AS id,
@@ -181,27 +175,39 @@ def show_books(username):
             Category AS category,
             Available AS available
         FROM LibraryData.Books
+        ORDER BY Title
     """)
-    all_books = [
+    books = [
         dict(zip([col[0] for col in cursor.description], row))
         for row in cursor.fetchall()
     ]
 
-    # My borrowed books with REAL due date
+    # 🏷️ CATEGORIES (DB-DRIVEN)
+    cursor.execute("""
+        SELECT DISTINCT Category
+        FROM LibraryData.Books
+        WHERE Category IS NOT NULL
+        ORDER BY Category
+    """)
+    categories = [row[0] for row in cursor.fetchall()]
+
+    # 📖 MY BORROWED BOOKS
+    account_id = get_account_id(cursor, username)
+
     cursor.execute("""
         SELECT 
             b.BookID AS id,
             b.Title AS title,
-            b.Author AS author,
-            b.DueDate AS due_date
-        FROM LibraryData.Books b
-        JOIN LibraryData.BorrowHistory bh ON b.BookID = bh.BookID
+            DATEADD(DAY, 14, bh.BorrowDate) AS due_date
+        FROM LibraryData.BorrowHistory bh
+        JOIN LibraryData.Books b ON bh.BookID = b.BookID
         WHERE bh.AccountID = ?
           AND bh.Status = 'borrow'
           AND bh.ReturnDate IS NULL
+        ORDER BY bh.BorrowDate
     """, (account_id,))
 
-    my_books = [
+    my_borrowed = [
         dict(zip([col[0] for col in cursor.description], row))
         for row in cursor.fetchall()
     ]
@@ -210,8 +216,9 @@ def show_books(username):
 
     return render_template(
         'transactions.html',
-        books=all_books,
-        my_borrowed=my_books,
+        books=books,
+        my_borrowed=my_borrowed,
+        categories=categories,   # ✅ IMPORTANT
         username=username,
         now=datetime.now()
     )
@@ -230,11 +237,12 @@ def search(username):
         return redirect(url_for('reader.home'))
 
     query = request.args.get('query', '')
-    cat_filter = request.args.get('category', 'All')
+    category_filter = request.args.get('category', 'All')
 
     conn = get_db_connection()
     cursor = conn.cursor()
 
+    # 🔍 BASE QUERY
     sql = """
         SELECT 
             BookID AS id,
@@ -251,32 +259,45 @@ def search(username):
         sql += " AND (Title LIKE ? OR Author LIKE ?)"
         params.extend([f"%{query}%", f"%{query}%"])
 
-    if cat_filter != 'All':
+    if category_filter != 'All':
         sql += " AND Category = ?"
-        params.append(cat_filter)
+        params.append(category_filter)
+
+    sql += " ORDER BY Title"
 
     cursor.execute(sql, params)
-    filtered_books = [
+
+    books = [
         dict(zip([col[0] for col in cursor.description], row))
         for row in cursor.fetchall()
     ]
 
+    # 🏷️ CATEGORIES (DB-DRIVEN)
+    cursor.execute("""
+        SELECT DISTINCT Category
+        FROM LibraryData.Books
+        WHERE Category IS NOT NULL
+        ORDER BY Category
+    """)
+    categories = [row[0] for row in cursor.fetchall()]
+
+    # 📖 MY BORROWED BOOKS
     account_id = get_account_id(cursor, username)
 
     cursor.execute("""
         SELECT 
             b.BookID AS id,
             b.Title AS title,
-            b.Author AS author,
-            b.DueDate AS due_date
-        FROM LibraryData.Books b
-        JOIN LibraryData.BorrowHistory bh ON b.BookID = bh.BookID
+            DATEADD(DAY, 14, bh.BorrowDate) AS due_date
+        FROM LibraryData.BorrowHistory bh
+        JOIN LibraryData.Books b ON bh.BookID = b.BookID
         WHERE bh.AccountID = ?
           AND bh.Status = 'borrow'
           AND bh.ReturnDate IS NULL
+        ORDER BY bh.BorrowDate
     """, (account_id,))
 
-    my_books = [
+    my_borrowed = [
         dict(zip([col[0] for col in cursor.description], row))
         for row in cursor.fetchall()
     ]
@@ -285,8 +306,9 @@ def search(username):
 
     return render_template(
         'transactions.html',
-        books=filtered_books,
-        my_borrowed=my_books,
+        books=books,
+        my_borrowed=my_borrowed,
+        categories=categories,   # ✅ IMPORTANT
         username=username,
         now=datetime.now()
     )
