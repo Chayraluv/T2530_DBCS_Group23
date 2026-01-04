@@ -432,6 +432,9 @@ GO
 USE MMU_Library;
 GO
 
+CREATE SCHEMA Security;
+GO
+
 -- 1. Create the Security Function (Based on image_e8ade0.png)
 CREATE OR ALTER FUNCTION Security.fn_reader_rls (@AccountID INT)
     RETURNS TABLE WITH SCHEMABINDING
