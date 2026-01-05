@@ -215,7 +215,8 @@ BEGIN
         LockoutUntil = NULL,
         CreatedDate = GETDATE()
     WHERE Username = @Username;
-END
+END;
+GO
 
 USE MMU_Library;
 GO
