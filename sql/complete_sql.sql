@@ -367,7 +367,19 @@ VALUES (
     0
 );
 
-COMMIT;
+GO
+
+--Update the books database
+USE MMU_Library;
+GO
+
+-- Inserting the provided book data into the Books table
+INSERT INTO LibraryData.Books (Title, Author, Category, Available)
+VALUES 
+    ('The Great Gatsby', 'F. Scott Fitzgerald', 'Fiction', 1),
+    ('1984', 'George Orwell', 'Science Fiction', 1),
+    ('The Hobbit', 'J.R.R. Tolkien', 'Fantasy', 1),
+    ('Python Programming', 'MMU Press', 'Technology', 1);
 GO
 
 --Check whether librarian data already insert or not
