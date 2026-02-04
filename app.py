@@ -22,29 +22,29 @@ app.register_blueprint(reader_bp)
 app.register_blueprint(librarian_bp)
 app.register_blueprint(transactions_bp)
 
-def get_db_connection():
-        # Update these values to match your local setup
-    conn_str = (
-        "Driver={ODBC Driver 18 for SQL Server};"
-        "Server=localhost;" #\\SQLEXPRESS;
-        "Database=MMU_Library;"
-        "Trusted_Connection=yes;"
-        "TrustServerCertificate=yes;"
-    )
-    return pyodbc.connect(conn_str)
+#def get_db_connection():
+#        # Update these values to match your local setup
+#    conn_str = (
+#        "Driver={ODBC Driver 18 for SQL Server};"
+#        "Server=localhost;" #\\SQLEXPRESS;
+#        "Database=MMU_Library;"
+#        "Trusted_Connection=yes;"
+#        "TrustServerCertificate=yes;"
+#    )
+#    return pyodbc.connect(conn_str)
 
 # This route is good for testing the connection initially
-@app.route('/test_db')
-def test_db():
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT @@version;")
-        row = cursor.fetchone()
-        conn.close()
-        return f"Connected! MS SQL Version: {row[0]}"
-    except Exception as e:
-        return f"Error: {str(e)}"
+#@app.route('/test_db')
+#def test_db():
+#    try:
+#        conn = get_db_connection()
+#        cursor = conn.cursor()
+#        cursor.execute("SELECT @@version;")
+#        row = cursor.fetchone()
+#        conn.close()
+#        return f"Connected! MS SQL Version: {row[0]}"
+#    except Exception as e:
+#        return f"Error: {str(e)}"
     
 '''@app.route('/')
 def index():
