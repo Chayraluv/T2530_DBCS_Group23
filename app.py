@@ -2,6 +2,7 @@
 
 from flask import Flask, redirect, url_for
 from datetime import timedelta
+import os
 import pymysql
 
 from reader import reader_bp
@@ -28,12 +29,13 @@ app.register_blueprint(transactions_bp)
 # =========================
 # MYSQL CONNECTION (RDS)
 # =========================
+
 def get_db_connection():
     return pymysql.connect(
-        host="RDS-ENDPOINT-HERE",
-        user="admin",
-        password="password",
-        database="mmu_library",
+        host=os.getenv("DB_HOST"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+        database=os.getenv("DB_NAME"),
         cursorclass=pymysql.cursors.DictCursor
     )
 

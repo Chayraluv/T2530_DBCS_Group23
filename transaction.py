@@ -3,6 +3,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, session
 from datetime import datetime, timedelta
 import pymysql
+import os
 
 transactions_bp = Blueprint('transactions', __name__)
 
@@ -13,12 +14,13 @@ MAX_BORROW_LIMIT = 3
 # =========================
 def get_db_connection():
     return pymysql.connect(
-        host="RDS-ENDPOINT-HERE",
-        user="admin",
-        password="password",
-        database="mmu_library",
+        host=os.getenv("DB_HOST"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+        database=os.getenv("DB_NAME"),
         cursorclass=pymysql.cursors.DictCursor
     )
+
 
 def get_account_id(cursor, username):
     cursor.execute(

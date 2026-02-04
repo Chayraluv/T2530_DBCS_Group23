@@ -4,6 +4,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from datetime import datetime, timedelta
 import pymysql
 import bcrypt
+import os
 
 # =========================
 # SECURITY CONSTANTS
@@ -19,10 +20,10 @@ reader_bp = Blueprint('reader', __name__)
 # =========================
 def get_db_connection():
     return pymysql.connect(
-        host="RDS-ENDPOINT-HERE",
-        user="admin",
-        password="password",
-        database="mmu_library",
+        host=os.getenv("DB_HOST"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+        database=os.getenv("DB_NAME"),
         cursorclass=pymysql.cursors.DictCursor
     )
 

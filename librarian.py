@@ -4,6 +4,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from datetime import datetime
 import pymysql
 import bcrypt
+import os
 
 librarian_bp = Blueprint('librarian', __name__)
 
@@ -12,12 +13,13 @@ librarian_bp = Blueprint('librarian', __name__)
 # =========================
 def get_db_connection():
     return pymysql.connect(
-        host="RDS-ENDPOINT-HERE",
-        user="admin",
-        password="password",
-        database="mmu_library",
+        host=os.getenv("DB_HOST"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+        database=os.getenv("DB_NAME"),
         cursorclass=pymysql.cursors.DictCursor
     )
+
 
 # =========================
 # PASSWORD HASHING
