@@ -1,22 +1,23 @@
+# librarian.py (MySQL / RDS version)
+
 from flask import Blueprint, render_template, redirect, url_for, flash, request, session
 from datetime import datetime
-import pyodbc
+import pymysql
 import bcrypt
 
 librarian_bp = Blueprint('librarian', __name__)
 
 # =========================
-# DATABASE CONNECTION
+# DATABASE CONNECTION (MYSQL)
 # =========================
 def get_db_connection():
-    conn_str = (
-        "Driver={ODBC Driver 18 for SQL Server};"
-        "Server=localhost;"
-        "Database=MMU_Library;"
-        "Trusted_Connection=yes;"
-        "TrustServerCertificate=yes;"
+    return pymysql.connect(
+        host="RDS-ENDPOINT-HERE",
+        user="admin",
+        password="password",
+        database="mmu_library",
+        cursorclass=pymysql.cursors.DictCursor
     )
-    return pyodbc.connect(conn_str)
 
 # =========================
 # PASSWORD HASHING
@@ -28,7 +29,7 @@ def hash_pwd(password: str, rounds=12) -> str:
     ).decode()
 
 # =========================
-# CREATE READER ACCOUNT (SP)
+# CREATE READER ACCOUNT
 # =========================
 @librarian_bp.route('/librarian/create_member', methods=['POST'])
 def create_member():
@@ -49,21 +50,24 @@ def create_member():
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "EXEC LibraryData.CreateReaderAccount ?, ?",
+            """
+            INSERT INTO Accounts (Username, Password, Role, CreatedDate)
+            VALUES (%s, %s, 'Reader', NOW())
+            """,
             (username, hashed)
         )
         conn.commit()
         flash("Reader account created successfully.", "success")
     except Exception as e:
         flash("Failed to create account.", "danger")
-        print("CreateReaderAccount error:", e)
+        print("CreateReader error:", e)
     finally:
         conn.close()
 
     return redirect(url_for('librarian.dashboard'))
 
 # =========================
-# ADD BOOK (SP) + CATEGORY
+# ADD BOOK
 # =========================
 @librarian_bp.route('/librarian/add_book', methods=['POST'])
 def add_book():
@@ -83,7 +87,10 @@ def add_book():
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "EXEC LibraryData.AddBook ?, ?, ?",
+            """
+            INSERT INTO Books (Title, Author, Category, Available)
+            VALUES (%s, %s, %s, 1)
+            """,
             (title, author, category)
         )
         conn.commit()
@@ -91,144 +98,6 @@ def add_book():
     except Exception as e:
         flash("Failed to add book.", "danger")
         print("AddBook error:", e)
-    finally:
-        conn.close()
-
-    return redirect(url_for('librarian.dashboard'))
-
-# =========================
-# EDIT BOOK (SP) + CATEGORY
-# =========================
-@librarian_bp.route('/librarian/edit_book/<int:book_id>', methods=['POST'])
-def edit_book(book_id):
-    if session.get('role') != 'Librarian':
-        flash("Access denied.", "danger")
-        return redirect(url_for('reader.home'))
-
-    title = request.form.get('title')
-    author = request.form.get('author')
-    category = request.form.get('category')
-
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            "EXEC LibraryData.EditBook ?, ?, ?, ?",
-            (book_id, title, author, category)
-        )
-        conn.commit()
-        flash("Book updated successfully.", "success")
-    except Exception as e:
-        flash("Failed to update book.", "danger")
-        print("EditBook error:", e)
-    finally:
-        conn.close()
-
-    return redirect(url_for('librarian.dashboard'))
-
-# =========================
-# DELETE BOOK (SP)
-# =========================
-@librarian_bp.route('/librarian/delete_book/<int:book_id>')
-def delete_book(book_id):
-    if session.get('role') != 'Librarian':
-        flash("Access denied.", "danger")
-        return redirect(url_for('reader.home'))
-
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("EXEC LibraryData.DeleteBook ?", (book_id,))
-        conn.commit()
-        flash("Book deleted.", "success")
-    except Exception as e:
-        flash("Cannot delete book.", "danger")
-        print("DeleteBook error:", e)
-    finally:
-        conn.close()
-
-    return redirect(url_for('librarian.dashboard'))
-
-# =========================
-# TOGGLE BOOK STATUS (SP)
-# =========================
-@librarian_bp.route('/librarian/toggle_status/<int:book_id>')
-def toggle_status(book_id):
-    if session.get('role') != 'Librarian':
-        flash("Access denied.", "danger")
-        return redirect(url_for('reader.home'))
-
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("EXEC LibraryData.ToggleBookStatus ?", (book_id,))
-        conn.commit()
-        flash("Book status updated.", "success")
-    except Exception as e:
-        flash("Failed to toggle status.", "danger")
-        print("ToggleBookStatus error:", e)
-    finally:
-        conn.close()
-
-    return redirect(url_for('librarian.dashboard'))
-
-# =========================
-# RESET USER PASSWORD (SP)
-# =========================
-@librarian_bp.route('/librarian/reset_password', methods=['POST'])
-def reset_password():
-    if session.get('role') != 'Librarian':
-        flash("Access denied.", "danger")
-        return redirect(url_for('reader.home'))
-
-    username = request.form.get('username')
-    new_password = request.form.get('new_password')
-
-    if username == session.get('username'):
-        flash("Use Change Password flow.", "danger")
-        return redirect(url_for('librarian.dashboard'))
-
-    hashed = hash_pwd(new_password)
-
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            "EXEC LibraryData.ResetUserPassword ?, ?",
-            (username, hashed)
-        )
-        conn.commit()
-        flash("Password reset successfully.", "success")
-    except Exception as e:
-        flash("Password reset failed.", "danger")
-        print("ResetUserPassword error:", e)
-    finally:
-        conn.close()
-
-    return redirect(url_for('librarian.dashboard'))
-
-# =========================
-# DELETE USER (SP)
-# =========================
-@librarian_bp.route('/librarian/delete_user/<username>')
-def delete_user(username):
-    if session.get('role') != 'Librarian':
-        flash("Access denied.", "danger")
-        return redirect(url_for('reader.home'))
-
-    if username == session.get('username'):
-        flash("You cannot delete your own account.", "danger")
-        return redirect(url_for('librarian.dashboard'))
-
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("EXEC LibraryData.DeleteUser ?", (username,))
-        conn.commit()
-        flash(f"User {username} deleted.", "success")
-    except Exception as e:
-        flash("Failed to delete user.", "danger")
-        print("DeleteUser error:", e)
     finally:
         conn.close()
 
@@ -246,30 +115,14 @@ def dashboard():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # 📚 Inventory
-    cursor.execute("""
-        SELECT BookID, Title, Author, Category, Available
-        FROM LibraryData.Books
-        ORDER BY BookID
-    """)
+    cursor.execute("SELECT * FROM Books ORDER BY BookID")
     inventory = cursor.fetchall()
 
-    # 👤 Members
-    cursor.execute("""
-        SELECT Username, Role
-        FROM LibraryData.Accounts
-        ORDER BY Username
-    """)
+    cursor.execute("SELECT Username, Role FROM Accounts ORDER BY Username")
     members = cursor.fetchall()
 
-    # 🏷️ Categories (SOURCE OF TRUTH)
-    cursor.execute("""
-        SELECT DISTINCT Category
-        FROM LibraryData.Books
-        WHERE Category IS NOT NULL
-        ORDER BY Category
-    """)
-    categories = [row[0] for row in cursor.fetchall()]
+    cursor.execute("SELECT DISTINCT Category FROM Books ORDER BY Category")
+    categories = [row["Category"] for row in cursor.fetchall()]
 
     conn.close()
 
@@ -277,7 +130,7 @@ def dashboard():
         "librarian_dashboard.html",
         inventory=inventory,
         members=members,
-        categories=categories,   # ✅ THIS FIXES EVERYTHING
+        categories=categories,
         now=datetime.now()
     )
 
