@@ -1,4 +1,4 @@
-# transaction.py (MySQL / RDS version)
+# transaction.py (MySQL / RDS - FIXED VERSION)
 
 from flask import Blueprint, render_template, redirect, url_for, flash, request, session
 from datetime import datetime, timedelta
@@ -10,7 +10,7 @@ transactions_bp = Blueprint('transactions', __name__)
 MAX_BORROW_LIMIT = 3
 
 # =========================
-# DATABASE CONNECTION (MYSQL)
+# DATABASE CONNECTION
 # =========================
 def get_db_connection():
     return pymysql.connect(
@@ -21,14 +21,16 @@ def get_db_connection():
         cursorclass=pymysql.cursors.DictCursor
     )
 
-
+# =========================
+# GET ACCOUNT ID
+# =========================
 def get_account_id(cursor, username):
     cursor.execute(
-        "SELECT AccountID FROM Accounts WHERE Username = %s",
+        "SELECT account_id FROM accounts WHERE username = %s",
         (username,)
     )
     row = cursor.fetchone()
-    return row["AccountID"] if row else None
+    return row["account_id"] if row else None
 
 # =========================
 # BORROW BOOK
@@ -56,10 +58,10 @@ def borrow(username, book_id):
         # Borrow limit check
         cursor.execute("""
             SELECT COUNT(*) AS total
-            FROM BorrowHistory
-            WHERE AccountID = %s
-              AND Status = 'borrow'
-              AND ReturnDate IS NULL
+            FROM borrow_history
+            WHERE account_id = %s
+              AND status = 'borrow'
+              AND return_date IS NULL
         """, (account_id,))
         borrowed_count = cursor.fetchone()["total"]
 
@@ -70,28 +72,27 @@ def borrow(username, book_id):
 
         # Check availability
         cursor.execute(
-            "SELECT Available FROM Books WHERE BookID = %s",
+            "SELECT available FROM books WHERE book_id = %s",
             (book_id,)
         )
         book = cursor.fetchone()
 
-        if not book or book["Available"] == 0:
+        if not book or book["available"] == 0:
             conn.close()
             flash("Book is not available.", "danger")
             return redirect(url_for('transactions.show_books', username=username))
 
-        # Set due date
         due_date = datetime.now() + timedelta(days=14)
 
         cursor.execute("""
-            UPDATE Books
-            SET Available = 0,
-                DueDate = %s
-            WHERE BookID = %s
+            UPDATE books
+            SET available = 0,
+                due_date = %s
+            WHERE book_id = %s
         """, (due_date, book_id))
 
         cursor.execute("""
-            INSERT INTO BorrowHistory (AccountID, BookID, BorrowDate, Status)
+            INSERT INTO borrow_history (account_id, book_id, borrow_date, status)
             VALUES (%s, %s, NOW(), 'borrow')
         """, (account_id, book_id))
 
@@ -101,7 +102,8 @@ def borrow(username, book_id):
         flash("Book borrowed successfully.", "success")
 
     except Exception as e:
-        flash(f"Database error: {str(e)}", "danger")
+        print("Borrow error:", e)
+        flash("Database error occurred.", "danger")
 
     return redirect(url_for('transactions.show_books', username=username))
 
@@ -125,19 +127,19 @@ def return_book(username, book_id):
         account_id = get_account_id(cursor, username)
 
         cursor.execute("""
-            UPDATE BorrowHistory
-            SET ReturnDate = NOW(),
-                Status = 'return'
-            WHERE AccountID = %s
-              AND BookID = %s
-              AND ReturnDate IS NULL
+            UPDATE borrow_history
+            SET return_date = NOW(),
+                status = 'return'
+            WHERE account_id = %s
+              AND book_id = %s
+              AND return_date IS NULL
         """, (account_id, book_id))
 
         cursor.execute("""
-            UPDATE Books
-            SET Available = 1,
-                DueDate = NULL
-            WHERE BookID = %s
+            UPDATE books
+            SET available = 1,
+                due_date = NULL
+            WHERE book_id = %s
         """, (book_id,))
 
         conn.commit()
@@ -146,7 +148,8 @@ def return_book(username, book_id):
         flash("Book returned successfully.", "success")
 
     except Exception as e:
-        flash(f"Error: {str(e)}", "danger")
+        print("Return error:", e)
+        flash("Error occurred while returning book.", "danger")
 
     return redirect(url_for('transactions.show_books', username=username))
 
@@ -167,36 +170,36 @@ def show_books(username):
     cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT BookID AS id,
-               Title AS title,
-               Author AS author,
-               Category AS category,
-               Available AS available
-        FROM Books
-        ORDER BY Title
+        SELECT book_id AS id,
+               title,
+               author,
+               category,
+               available
+        FROM books
+        ORDER BY title
     """)
     books = cursor.fetchall()
 
     cursor.execute("""
-        SELECT DISTINCT Category
-        FROM Books
-        WHERE Category IS NOT NULL
-        ORDER BY Category
+        SELECT DISTINCT category
+        FROM books
+        WHERE category IS NOT NULL
+        ORDER BY category
     """)
-    categories = [row["Category"] for row in cursor.fetchall()]
+    categories = [row["category"] for row in cursor.fetchall()]
 
     account_id = get_account_id(cursor, username)
 
     cursor.execute("""
-        SELECT b.BookID AS id,
-               b.Title AS title,
-               bh.BorrowDate + INTERVAL 14 DAY AS due_date
-        FROM BorrowHistory bh
-        JOIN Books b ON bh.BookID = b.BookID
-        WHERE bh.AccountID = %s
-          AND bh.Status = 'borrow'
-          AND bh.ReturnDate IS NULL
-        ORDER BY bh.BorrowDate
+        SELECT b.book_id AS id,
+               b.title,
+               bh.borrow_date + INTERVAL 14 DAY AS due_date
+        FROM borrow_history bh
+        JOIN books b ON bh.book_id = b.book_id
+        WHERE bh.account_id = %s
+          AND bh.status = 'borrow'
+          AND bh.return_date IS NULL
+        ORDER BY bh.borrow_date
     """, (account_id,))
     my_borrowed = cursor.fetchall()
 
@@ -231,49 +234,49 @@ def search(username):
     cursor = conn.cursor()
 
     sql = """
-        SELECT BookID AS id,
-               Title AS title,
-               Author AS author,
-               Category AS category,
-               Available AS available
-        FROM Books
+        SELECT book_id AS id,
+               title,
+               author,
+               category,
+               available
+        FROM books
         WHERE 1=1
     """
     params = []
 
     if query:
-        sql += " AND (Title LIKE %s OR Author LIKE %s)"
+        sql += " AND (title LIKE %s OR author LIKE %s)"
         params.extend([f"%{query}%", f"%{query}%"])
 
     if category_filter != 'All':
-        sql += " AND Category = %s"
+        sql += " AND category = %s"
         params.append(category_filter)
 
-    sql += " ORDER BY Title"
+    sql += " ORDER BY title"
 
     cursor.execute(sql, params)
     books = cursor.fetchall()
 
     cursor.execute("""
-        SELECT DISTINCT Category
-        FROM Books
-        WHERE Category IS NOT NULL
-        ORDER BY Category
+        SELECT DISTINCT category
+        FROM books
+        WHERE category IS NOT NULL
+        ORDER BY category
     """)
-    categories = [row["Category"] for row in cursor.fetchall()]
+    categories = [row["category"] for row in cursor.fetchall()]
 
     account_id = get_account_id(cursor, username)
 
     cursor.execute("""
-        SELECT b.BookID AS id,
-               b.Title AS title,
-               bh.BorrowDate + INTERVAL 14 DAY AS due_date
-        FROM BorrowHistory bh
-        JOIN Books b ON bh.BookID = b.BookID
-        WHERE bh.AccountID = %s
-          AND bh.Status = 'borrow'
-          AND bh.ReturnDate IS NULL
-        ORDER BY bh.BorrowDate
+        SELECT b.book_id AS id,
+               b.title,
+               bh.borrow_date + INTERVAL 14 DAY AS due_date
+        FROM borrow_history bh
+        JOIN books b ON bh.book_id = b.book_id
+        WHERE bh.account_id = %s
+          AND bh.status = 'borrow'
+          AND bh.return_date IS NULL
+        ORDER BY bh.borrow_date
     """, (account_id,))
     my_borrowed = cursor.fetchall()
 
