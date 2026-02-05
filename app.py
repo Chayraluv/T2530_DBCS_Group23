@@ -1,10 +1,9 @@
 # app.py (MySQL / RDS version)
 
-from flask import Flask, redirect, url_for
+from flask import Flask, redirect, url_for, jsonify
 from datetime import timedelta
 import os
 import pymysql
-from flask import jsonify
 
 from reader import reader_bp
 from librarian import librarian_bp
@@ -45,9 +44,6 @@ def get_db_connection():
 # =========================
 # TEST DB CONNECTION
 # =========================
-@app.route("/test_db")
-from flask import jsonify
-
 @app.route("/test_db")
 def test_db():
     try:
