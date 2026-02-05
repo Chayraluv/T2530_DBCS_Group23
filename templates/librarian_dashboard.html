@@ -152,11 +152,11 @@
                     <td>{{ member.Role }}</td>
                     <td>
                         {% if member.Username != session['username'] and not session.get('force_pwd_change') %}
-                        <form action="{{ url_for('librarian.reset_password') }}" method="POST">
+                        <!--<form action="{{ url_for('librarian.reset_password') }}" method="POST">
                             <input type="hidden" name="username" value="{{ member.Username }}">
                             <input type="password" name="new_password" required>
                             <button class="btn-action btn-save">Update</button>
-                        </form>
+                        </form>-->
                         {% else %}
                         <span class="protected-text">Use Change Password</span>
                         {% endif %}
