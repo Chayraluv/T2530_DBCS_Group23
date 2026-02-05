@@ -37,7 +37,7 @@ def get_account_id(cursor, username):
 # =========================
 @transactions_bp.route('/borrow/<username>/<int:book_id>')
 def borrow(username, book_id):
-    if 'username' not in session or session.get('role') != 'Reader':
+    if 'username' not in session or session.get('role') != 'reader':
         flash("Unauthorized action.", "danger")
         return redirect(url_for('reader.home'))
 
@@ -112,7 +112,7 @@ def borrow(username, book_id):
 # =========================
 @transactions_bp.route('/return/<username>/<int:book_id>')
 def return_book(username, book_id):
-    if 'username' not in session or session.get('role') != 'Reader':
+    if 'username' not in session or session.get('role') != 'reader':
         flash("Unauthorized action.", "danger")
         return redirect(url_for('reader.home'))
 
@@ -158,7 +158,7 @@ def return_book(username, book_id):
 # =========================
 @transactions_bp.route('/books/<username>')
 def show_books(username):
-    if 'username' not in session or session.get('role') != 'Reader':
+    if 'username' not in session or session.get('role') != 'reader':
         flash("Please login as Reader.", "danger")
         return redirect(url_for('reader.home'))
 
@@ -219,7 +219,7 @@ def show_books(username):
 # =========================
 @transactions_bp.route('/search/<username>')
 def search(username):
-    if 'username' not in session or session.get('role') != 'Reader':
+    if 'username' not in session or session.get('role') != 'reader':
         flash("Please login as Reader.", "danger")
         return redirect(url_for('reader.home'))
 

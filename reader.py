@@ -55,7 +55,7 @@ def home():
 @reader_bp.route('/login', methods=['GET'])
 def login_page():
     return render_template('user_interface.html')
-    
+
 @reader_bp.route('/login', methods=['POST'])
 def login():
     username = request.form.get('username')
@@ -79,6 +79,7 @@ def login():
 
     db_password = user["password"]
     db_role = user["role"].lower()
+    selected_role = selected_role.lower()
     session["role"] = db_role
     failed = user["failed_attempts"]
     lockout_until = user["lockout_until"]
