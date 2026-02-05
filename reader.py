@@ -59,8 +59,6 @@ def login():
     password = request.form.get('password', '').strip()
     selected_role = request.form.get('role', '').strip()
 
-    
-
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -94,7 +92,7 @@ def login():
     # =========================
     # INVALID PASSWORD / ROLE
     # =========================
-    if not check_pwd(password, db_password) or db_role != selected_role:
+    if not check_pwd(password, db_password) or db_role.strip().lower() != selected_role.strip().lower():
         failed += 1
 
         if failed >= MAX_ATTEMPTS:
