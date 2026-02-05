@@ -46,6 +46,9 @@ def get_db_connection():
 # TEST DB CONNECTION
 # =========================
 @app.route("/test_db")
+from flask import jsonify
+
+@app.route("/test_db")
 def test_db():
     try:
         conn = get_db_connection()
@@ -53,15 +56,18 @@ def test_db():
         cursor.execute("SELECT VERSION();")
         row = cursor.fetchone()
         conn.close()
-        return jsonify({
-            "status": "success",
-            "version": row["VERSION()"]
-        })
-    except Exception as e:
-        return jsonify({
-            "status": "error",
-            "message": str(e)
-        })
+
+        return jsonify(
+            status="success",
+            version=row["VERSION()"]
+        )
+
+    except Exception:
+        # JANGAN return str(e)
+        return jsonify(
+            status="error",
+            message="Database connection failed"
+        ), 500
 
 
 # =========================
