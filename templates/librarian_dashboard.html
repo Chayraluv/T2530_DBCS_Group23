@@ -212,29 +212,29 @@
                 {% for book in inventory %}
                 <tr>
                     <td>
-                        <form action="{{ url_for('librarian.edit_book', book_id=book.BookID) }}"
-                              method="POST" style="display:flex; gap:5px;">
-                            <input type="text" name="title" value="{{ book.Title }}" required>
-                            <input type="text" name="author" value="{{ book.Author }}" required>
+                        <form action="{{ url_for('librarian.edit_book', book_id=book['book_id']) }}"
+                            method="POST" style="display:flex; gap:5px;">
+                            <input type="text" name="title" value="{{ book['title'] }}" required>
+                            <input type="text" name="author" value="{{ book['author'] }}" required>
                     </td>
 
                     <td>
                         <select name="category" required>
                             {% for cat in categories %}
                                 <option value="{{ cat }}"
-                                    {% if book.Category == cat %}selected{% endif %}>
+                                    {% if book['category'] == cat %}selected{% endif %}>
                                     {{ cat }}
                                 </option>
                             {% endfor %}
                         </select>
                     </td>
 
-                    <td class="{{ 'status-available' if book.Available else 'status-borrowed' }}">
-                        {{ "Available" if book.Available else "Borrowed" }}
+                    <td class="{{ 'status-available' if book['available'] else 'status-borrowed' }}">
+                        {{ "Available" if book['available'] else "Borrowed" }}
                     </td>
 
                     <td>
-                        <a href="{{ url_for('librarian.toggle_status', book_id=book.BookID) }}">
+                        <a href="{{ url_for('librarian.toggle_status', book_id=book['book_id']) }}">
                             Change Status
                         </a>
                     </td>
@@ -243,9 +243,9 @@
                         <button class="btn-action btn-save">Save</button>
                         </form>
 
-                        <a href="{{ url_for('librarian.delete_book', book_id=book.BookID) }}"
-                           class="btn-action btn-delete"
-                           onclick="return confirm('Delete book?')">
+                        <a href="{{ url_for('librarian.delete_book', book_id=book['book_id']) }}"
+                        class="btn-action btn-delete"
+                        onclick="return confirm('Delete book?')">
                             Delete
                         </a>
                     </td>

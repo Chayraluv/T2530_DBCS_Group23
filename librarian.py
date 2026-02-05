@@ -232,6 +232,7 @@ def dashboard():
         inventory=inventory,
         members=members,
         categories=categories,
+        overdue_list=[], 
         now=datetime.now()
     )
 
