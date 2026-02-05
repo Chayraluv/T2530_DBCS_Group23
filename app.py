@@ -11,6 +11,8 @@ from transaction import transactions_bp
 import sys
 sys.stdout.reconfigure(encoding="utf-8")
 app = Flask(__name__)
+app.config['JSON_AS_ASCII'] = False
+
 
 # =========================
 # BASIC CONFIG
