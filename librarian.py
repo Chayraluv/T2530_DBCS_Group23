@@ -182,24 +182,29 @@ def reset_password():
         return redirect(url_for('reader.home'))
 
     username = request.form.get('username')
-    temp_password = "Temp@1234"
+    new_password = request.form.get('new_password')
 
-    hashed = hash_pwd(temp_password)
+    hashed = hash_pwd(new_password)
 
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-        UPDATE accounts
-        SET password=%s,
-            failed_attempts=0,
-            lockout_until=NULL,
-            created_date=NULL
-        WHERE username=%s
-    """, (hashed, username))
-    conn.commit()
-    conn.close()
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE accounts
+            SET password = %s,
+                failed_attempts = 0,
+                lockout_until = NULL,
+                created_date = NOW()
+            WHERE username = %s
+        """, (hashed, username))
+        conn.commit()
+        flash("Password reset successfully.", "success")
+    except Exception as e:
+        flash("Password reset failed.", "danger")
+        print(e)
+    finally:
+        conn.close()
 
-    flash(f"Temporary password set: {temp_password}", "warning")
     return redirect(url_for('librarian.dashboard'))
 
 # =========================
