@@ -1,4 +1,4 @@
-# librarian.py (MySQL / RDS version)
+# librarian.py (MySQL / RDS - FIXED VERSION)
 
 from flask import Blueprint, render_template, redirect, url_for, flash, request, session
 from datetime import datetime
@@ -9,7 +9,7 @@ import os
 librarian_bp = Blueprint('librarian', __name__)
 
 # =========================
-# DATABASE CONNECTION (MYSQL)
+# DATABASE CONNECTION
 # =========================
 def get_db_connection():
     return pymysql.connect(
@@ -20,15 +20,14 @@ def get_db_connection():
         cursorclass=pymysql.cursors.DictCursor
     )
 
-
 # =========================
 # PASSWORD HASHING
 # =========================
 def hash_pwd(password: str, rounds=12) -> str:
     return bcrypt.hashpw(
-        password.encode(),
+        password.encode("utf-8"),
         bcrypt.gensalt(rounds)
-    ).decode()
+    ).decode("utf-8")
 
 # =========================
 # CREATE READER ACCOUNT
@@ -53,7 +52,7 @@ def create_member():
         cursor = conn.cursor()
         cursor.execute(
             """
-            INSERT INTO Accounts (Username, Password, Role, CreatedDate)
+            INSERT INTO accounts (username, password, role, created_date)
             VALUES (%s, %s, 'Reader', NOW())
             """,
             (username, hashed)
@@ -61,8 +60,8 @@ def create_member():
         conn.commit()
         flash("Reader account created successfully.", "success")
     except Exception as e:
+        print("Create member error:", e)
         flash("Failed to create account.", "danger")
-        print("CreateReader error:", e)
     finally:
         conn.close()
 
@@ -90,7 +89,7 @@ def add_book():
         cursor = conn.cursor()
         cursor.execute(
             """
-            INSERT INTO Books (Title, Author, Category, Available)
+            INSERT INTO books (title, author, category, available)
             VALUES (%s, %s, %s, 1)
             """,
             (title, author, category)
@@ -98,8 +97,8 @@ def add_book():
         conn.commit()
         flash("Book added successfully.", "success")
     except Exception as e:
+        print("Add book error:", e)
         flash("Failed to add book.", "danger")
-        print("AddBook error:", e)
     finally:
         conn.close()
 
@@ -117,14 +116,14 @@ def dashboard():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM Books ORDER BY BookID")
+    cursor.execute("SELECT * FROM books ORDER BY book_id")
     inventory = cursor.fetchall()
 
-    cursor.execute("SELECT Username, Role FROM Accounts ORDER BY Username")
+    cursor.execute("SELECT username, role FROM accounts ORDER BY username")
     members = cursor.fetchall()
 
-    cursor.execute("SELECT DISTINCT Category FROM Books ORDER BY Category")
-    categories = [row["Category"] for row in cursor.fetchall()]
+    cursor.execute("SELECT DISTINCT category FROM books ORDER BY category")
+    categories = [row["category"] for row in cursor.fetchall()]
 
     conn.close()
 
