@@ -1,5 +1,3 @@
-# librarian.py (MySQL / RDS - FIXED VERSION)
-
 from flask import Blueprint, render_template, redirect, url_for, flash, request, session
 from datetime import datetime
 import pymysql
@@ -8,9 +6,6 @@ import os
 
 librarian_bp = Blueprint('librarian', __name__)
 
-# =========================
-# DATABASE CONNECTION
-# =========================
 def get_db_connection():
     return pymysql.connect(
         host=os.getenv("DB_HOST"),
@@ -20,89 +15,11 @@ def get_db_connection():
         cursorclass=pymysql.cursors.DictCursor
     )
 
-# =========================
-# PASSWORD HASHING
-# =========================
 def hash_pwd(password: str, rounds=12) -> str:
     return bcrypt.hashpw(
         password.encode("utf-8"),
         bcrypt.gensalt(rounds)
     ).decode("utf-8")
-
-# =========================
-# CREATE READER ACCOUNT
-# =========================
-@librarian_bp.route('/librarian/create_member', methods=['POST'])
-def create_member():
-    if session.get('role') != 'librarian':
-        flash("Access denied.", "danger")
-        return redirect(url_for('reader.home'))
-
-    username = request.form.get('username')
-    password = request.form.get('password')
-
-    if not username or not password:
-        flash("All fields are required.", "danger")
-        return redirect(url_for('librarian.dashboard'))
-
-    hashed = hash_pwd(password)
-
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            INSERT INTO accounts (username, password, role, created_date)
-            VALUES (%s, %s, 'Reader', NOW())
-            """,
-            (username, hashed)
-        )
-        conn.commit()
-        flash("Reader account created successfully.", "success")
-    except Exception as e:
-        print("Create member error:", e)
-        flash("Failed to create account.", "danger")
-    finally:
-        conn.close()
-
-    return redirect(url_for('librarian.dashboard'))
-
-# =========================
-# ADD BOOK
-# =========================
-@librarian_bp.route('/librarian/add_book', methods=['POST'])
-def add_book():
-    if session.get('role') != 'librarian':
-        flash("Access denied.", "danger")
-        return redirect(url_for('reader.home'))
-
-    title = request.form.get('title')
-    author = request.form.get('author')
-    category = request.form.get('category')
-
-    if not title or not author or not category:
-        flash("All book fields are required.", "danger")
-        return redirect(url_for('librarian.dashboard'))
-
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            INSERT INTO books (title, author, category, available)
-            VALUES (%s, %s, %s, 1)
-            """,
-            (title, author, category)
-        )
-        conn.commit()
-        flash("Book added successfully.", "success")
-    except Exception as e:
-        print("Add book error:", e)
-        flash("Failed to add book.", "danger")
-    finally:
-        conn.close()
-
-    return redirect(url_for('librarian.dashboard'))
 
 # =========================
 # DASHBOARD
@@ -116,13 +33,26 @@ def dashboard():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM books ORDER BY book_id")
+    cursor.execute("""
+        SELECT book_id, title, author, category, available, due_date
+        FROM books
+        ORDER BY title
+    """)
     inventory = cursor.fetchall()
 
-    cursor.execute("SELECT username, role FROM accounts ORDER BY username")
+    cursor.execute("""
+        SELECT username, role
+        FROM accounts
+        ORDER BY username
+    """)
     members = cursor.fetchall()
 
-    cursor.execute("SELECT DISTINCT category FROM books ORDER BY category")
+    cursor.execute("""
+        SELECT DISTINCT category
+        FROM books
+        WHERE category IS NOT NULL
+        ORDER BY category
+    """)
     categories = [row["category"] for row in cursor.fetchall()]
 
     conn.close()
@@ -134,6 +64,38 @@ def dashboard():
         categories=categories,
         now=datetime.now()
     )
+
+# =========================
+# CREATE READER
+# =========================
+@librarian_bp.route('/librarian/create_member', methods=['POST'])
+def create_member():
+    if session.get('role') != 'librarian':
+        flash("Access denied.", "danger")
+        return redirect(url_for('reader.home'))
+
+    username = request.form.get('username')
+    password = request.form.get('password')
+
+    hashed = hash_pwd(password)
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            INSERT INTO accounts (username, password, role)
+            VALUES (%s, %s, 'Reader')
+        """, (username, hashed))
+        conn.commit()
+        flash("Reader created successfully.", "success")
+    except Exception as e:
+        flash("Failed to create user.", "danger")
+        print(e)
+    finally:
+        conn.close()
+
+    return redirect(url_for('librarian.dashboard'))
 
 # =========================
 # LOGOUT
