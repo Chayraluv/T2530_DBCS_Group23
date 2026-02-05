@@ -4,6 +4,7 @@ from flask import Flask, redirect, url_for
 from datetime import timedelta
 import os
 import pymysql
+from flask import jsonify
 
 from reader import reader_bp
 from librarian import librarian_bp
@@ -52,9 +53,16 @@ def test_db():
         cursor.execute("SELECT VERSION();")
         row = cursor.fetchone()
         conn.close()
-        return f"Connected to MySQL! Version: {row['VERSION()']}"
+        return jsonify({
+            "status": "success",
+            "version": row["VERSION()"]
+        })
     except Exception as e:
-        return f"DB Error: {str(e)}"
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        })
+
 
 # =========================
 # ROOT
