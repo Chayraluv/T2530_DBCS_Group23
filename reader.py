@@ -101,7 +101,7 @@ def login():
         failed += 1
 
         if failed >= MAX_ATTEMPTS:
-            if db_role == "Librarian":
+            if db_role == "librarian":
                 # Permanent lock
                 cursor.execute("""
                     UPDATE accounts
@@ -147,7 +147,7 @@ def login():
     # =========================
     # PASSWORD EXPIRY (LIBRARIAN)
     # =========================
-    if db_role == "Librarian":
+    if db_role == "librarian":
         if not pwd_created or pwd_created < datetime.now() - timedelta(days=PASSWORD_EXPIRY_DAYS):
             session["force_pwd_change"] = True
             return redirect(url_for("reader.change_password"))
@@ -183,7 +183,7 @@ def change_password():
         session.pop("force_pwd_change", None)
         flash("Password updated successfully.", "success")
 
-        if session["role"] == "Librarian":
+        if session["role"] == "librarian":
             return redirect(url_for("librarian.dashboard"))
 
         return redirect(url_for("transactions.show_books", username=session["username"]))
