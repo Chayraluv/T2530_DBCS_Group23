@@ -79,6 +79,14 @@ def login():
     failed = user["failed_attempts"]
     lockout_until = user["lockout_until"]
     pwd_created = user["created_date"]
+    print("=== LOGIN DEBUG ===")
+    print("username:", repr(username))
+    print("password:", repr(password))
+    print("selected_role:", repr(selected_role))
+    print("db_role:", repr(db_role))
+    print("check_pwd:", check_pwd(password, db_password))
+    print("===================")
+
 
     # =========================
     # LOCKOUT CHECK
