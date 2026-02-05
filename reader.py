@@ -1,4 +1,4 @@
-# reader.py (MySQL / RDS - FIXED VERSION)
+# reader.py (MySQL / RDS - FINAL CLEAN)
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from datetime import datetime, timedelta
@@ -43,19 +43,15 @@ def check_pwd(password: str, hashed: str) -> bool:
     )
 
 # =========================
-# HOME
+# HOME (LOGIN PAGE)
 # =========================
 @reader_bp.route('/')
 def home():
-    return render_template('user_interface.html', user=None)
+    return render_template('user_interface.html')
 
 # =========================
 # LOGIN
 # =========================
-@reader_bp.route('/login', methods=['GET'])
-def login_page():
-    return render_template('user_interface.html')
-
 @reader_bp.route('/login', methods=['POST'])
 def login():
     username = request.form.get('username')
@@ -78,9 +74,7 @@ def login():
         return redirect(url_for('reader.home'))
 
     db_password = user["password"]
-    db_role = user["role"].lower()
-    selected_role = selected_role.lower()
-    session["role"] = db_role
+    db_role = user["role"]              # ❗ CASE-SENSITIVE
     failed = user["failed_attempts"]
     lockout_until = user["lockout_until"]
     pwd_created = user["created_date"]
@@ -95,14 +89,13 @@ def login():
         return redirect(url_for('reader.home'))
 
     # =========================
-    # INVALID PASSWORD OR ROLE
+    # INVALID PASSWORD / ROLE
     # =========================
     if not check_pwd(password, db_password) or db_role != selected_role:
         failed += 1
 
         if failed >= MAX_ATTEMPTS:
-            if db_role == "librarian":
-                # Permanent lock
+            if db_role == "Librarian":
                 cursor.execute("""
                     UPDATE accounts
                     SET failed_attempts = %s,
@@ -110,7 +103,6 @@ def login():
                     WHERE username = %s
                 """, (failed, username))
             else:
-                # Temporary lock
                 cursor.execute("""
                     UPDATE accounts
                     SET failed_attempts = %s,
@@ -147,7 +139,7 @@ def login():
     # =========================
     # PASSWORD EXPIRY (LIBRARIAN)
     # =========================
-    if db_role == "librarian":
+    if db_role == "Librarian":
         if not pwd_created or pwd_created < datetime.now() - timedelta(days=PASSWORD_EXPIRY_DAYS):
             session["force_pwd_change"] = True
             return redirect(url_for("reader.change_password"))
@@ -183,13 +175,12 @@ def change_password():
         session.pop("force_pwd_change", None)
         flash("Password updated successfully.", "success")
 
-        if session["role"] == "librarian":
+        if session["role"] == "Librarian":
             return redirect(url_for("librarian.dashboard"))
 
         return redirect(url_for("transactions.show_books", username=session["username"]))
 
     return render_template("change_password.html")
-
 
 # =========================
 # LOGOUT
