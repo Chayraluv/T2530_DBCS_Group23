@@ -8,7 +8,8 @@ import pymysql
 from reader import reader_bp
 from librarian import librarian_bp
 from transaction import transactions_bp
-
+import sys
+sys.stdout.reconfigure(encoding="utf-8")
 app = Flask(__name__)
 
 # =========================
@@ -36,6 +37,7 @@ def get_db_connection():
         user=os.getenv("DB_USER"),
         password=os.getenv("DB_PASSWORD"),
         database=os.getenv("DB_NAME"),
+        charset="utf8mb4",
         cursorclass=pymysql.cursors.DictCursor
     )
 
