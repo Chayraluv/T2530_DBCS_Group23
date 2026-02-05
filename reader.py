@@ -190,6 +190,8 @@ def change_password():
 
     return render_template("change_password.html")
 
+print("DEBUG LOGIN:", username, db_role, selected_role)
+
 # =========================
 # LOGOUT
 # =========================
