@@ -173,6 +173,36 @@ def toggle_status(book_id):
     return redirect(url_for('librarian.dashboard'))
 
 # =========================
+# RESET USER PASSWORD (SP)
+# =========================
+@librarian_bp.route('/librarian/reset_password', methods=['POST'])
+def reset_password():
+    if session.get('role') != 'Librarian':
+        flash("Access denied.", "danger")
+        return redirect(url_for('reader.home'))
+
+    username = request.form.get('username')
+    temp_password = "Temp@1234"
+
+    hashed = hash_pwd(temp_password)
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE accounts
+        SET password=%s,
+            failed_attempts=0,
+            lockout_until=NULL,
+            created_date=NULL
+        WHERE username=%s
+    """, (hashed, username))
+    conn.commit()
+    conn.close()
+
+    flash(f"Temporary password set: {temp_password}", "warning")
+    return redirect(url_for('librarian.dashboard'))
+
+# =========================
 # DELETE USER
 # =========================
 @librarian_bp.route('/librarian/delete_user/<username>')
