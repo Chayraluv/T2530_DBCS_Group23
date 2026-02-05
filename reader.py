@@ -55,9 +55,11 @@ def home():
 # =========================
 @reader_bp.route('/login', methods=['POST'])
 def login():
-    username = request.form.get('username')
-    password = request.form.get('password')
-    selected_role = request.form.get('role')
+    username = request.form.get('username', '').strip()
+    password = request.form.get('password', '').strip()
+    selected_role = request.form.get('role', '').strip()
+
+    
 
     conn = get_db_connection()
     cursor = conn.cursor()
