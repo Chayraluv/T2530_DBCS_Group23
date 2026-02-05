@@ -52,6 +52,10 @@ def home():
 # =========================
 # LOGIN
 # =========================
+@reader_bp.route('/login', methods=['GET'])
+def login_page():
+    return render_template('user_interface.html')
+    
 @reader_bp.route('/login', methods=['POST'])
 def login():
     username = request.form.get('username')
