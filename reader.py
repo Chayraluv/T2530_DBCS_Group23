@@ -74,7 +74,8 @@ def login():
         return redirect(url_for('reader.home'))
 
     db_password = user["password"]
-    db_role = user["role"]
+    db_role = user["role"].lower()
+    session["role"] = db_role
     failed = user["failed_attempts"]
     lockout_until = user["lockout_until"]
     pwd_created = user["created_date"]

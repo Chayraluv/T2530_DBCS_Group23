@@ -34,7 +34,7 @@ def hash_pwd(password: str, rounds=12) -> str:
 # =========================
 @librarian_bp.route('/librarian/create_member', methods=['POST'])
 def create_member():
-    if session.get('role') != 'Librarian':
+    if session.get('role') != 'librarian':
         flash("Access denied.", "danger")
         return redirect(url_for('reader.home'))
 
@@ -72,7 +72,7 @@ def create_member():
 # =========================
 @librarian_bp.route('/librarian/add_book', methods=['POST'])
 def add_book():
-    if session.get('role') != 'Librarian':
+    if session.get('role') != 'librarian':
         flash("Access denied.", "danger")
         return redirect(url_for('reader.home'))
 
@@ -109,7 +109,7 @@ def add_book():
 # =========================
 @librarian_bp.route('/librarian/dashboard')
 def dashboard():
-    if session.get('role') != 'Librarian':
+    if session.get('role') != 'librarian':
         flash("Access denied.", "danger")
         return redirect(url_for('reader.home'))
 
