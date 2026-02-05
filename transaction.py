@@ -187,3 +187,82 @@ def show_books(username):
         username=username,
         now=datetime.now()
     )
+
+# =========================
+# SEARCH BOOKS
+# =========================
+@transactions_bp.route('/search/<username>')
+def search(username):
+    if 'username' not in session or session.get('role') != 'Reader':
+        flash("Please login as Reader.", "danger")
+        return redirect(url_for('reader.home'))
+
+    if session['username'] != username:
+        flash("Unauthorized access.", "danger")
+        return redirect(url_for('reader.home'))
+
+    query = request.args.get('query', '')
+    category_filter = request.args.get('category', 'All')
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # 🔍 BASE QUERY (MySQL)
+    sql = """
+        SELECT book_id AS id,
+               title,
+               author,
+               category,
+               available
+        FROM books
+        WHERE 1=1
+    """
+    params = []
+
+    if query:
+        sql += " AND (title LIKE %s OR author LIKE %s)"
+        params.extend([f"%{query}%", f"%{query}%"])
+
+    if category_filter != "All":
+        sql += " AND category = %s"
+        params.append(category_filter)
+
+    sql += " ORDER BY title"
+
+    cursor.execute(sql, params)
+    books = cursor.fetchall()
+
+    # 📂 Categories
+    cursor.execute("""
+        SELECT DISTINCT category
+        FROM books
+        WHERE category IS NOT NULL
+        ORDER BY category
+    """)
+    categories = [row["category"] for row in cursor.fetchall()]
+
+    # 📖 My borrowed books
+    account_id = get_account_id(cursor, username)
+
+    cursor.execute("""
+        SELECT b.book_id AS id,
+               b.title,
+               bh.borrow_date + INTERVAL 14 DAY AS due_date
+        FROM borrow_history bh
+        JOIN books b ON bh.book_id = b.book_id
+        WHERE bh.account_id = %s
+          AND bh.status = 'borrow'
+          AND bh.return_date IS NULL
+    """, (account_id,))
+    my_borrowed = cursor.fetchall()
+
+    conn.close()
+
+    return render_template(
+        "transactions.html",
+        books=books,
+        my_borrowed=my_borrowed,
+        categories=categories,
+        username=username,
+        now=datetime.now()
+    )
