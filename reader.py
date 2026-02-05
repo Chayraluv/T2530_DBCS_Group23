@@ -1,4 +1,4 @@
-# reader.py (MySQL / RDS version)
+# reader.py (MySQL / RDS - FIXED VERSION)
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from datetime import datetime, timedelta
@@ -16,7 +16,7 @@ PASSWORD_EXPIRY_DAYS = 180  # 6 months
 reader_bp = Blueprint('reader', __name__)
 
 # =========================
-# DATABASE CONNECTION (MYSQL)
+# DATABASE CONNECTION
 # =========================
 def get_db_connection():
     return pymysql.connect(
@@ -31,10 +31,16 @@ def get_db_connection():
 # PASSWORD HASHING
 # =========================
 def hash_pwd(password: str, rounds=12) -> str:
-    return bcrypt.hashpw(password.encode(), bcrypt.gensalt(rounds)).decode()
+    return bcrypt.hashpw(
+        password.encode("utf-8"),
+        bcrypt.gensalt(rounds)
+    ).decode("utf-8")
 
 def check_pwd(password: str, hashed: str) -> bool:
-    return bcrypt.checkpw(password.encode(), hashed.encode())
+    return bcrypt.checkpw(
+        password.encode("utf-8"),
+        hashed.encode("utf-8")
+    )
 
 # =========================
 # HOME
@@ -56,9 +62,9 @@ def login():
     cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT Password, Role, FailedAttempts, LockoutUntil, CreatedDate
-        FROM Accounts
-        WHERE Username = %s
+        SELECT password, role, failed_attempts, lockout_until, created_date
+        FROM accounts
+        WHERE username = %s
     """, (username,))
     user = cursor.fetchone()
 
@@ -67,11 +73,11 @@ def login():
         flash("Invalid username or password.", "danger")
         return redirect(url_for('reader.home'))
 
-    db_password = user["Password"]
-    db_role = user["Role"]
-    failed = user["FailedAttempts"]
-    lockout_until = user["LockoutUntil"]
-    pwd_created = user["CreatedDate"]
+    db_password = user["password"]
+    db_role = user["role"]
+    failed = user["failed_attempts"]
+    lockout_until = user["lockout_until"]
+    pwd_created = user["created_date"]
 
     # =========================
     # LOCKOUT CHECK
@@ -92,24 +98,24 @@ def login():
             if db_role == "Librarian":
                 # Permanent lock
                 cursor.execute("""
-                    UPDATE Accounts
-                    SET FailedAttempts = %s,
-                        LockoutUntil = '9999-12-31'
-                    WHERE Username = %s
+                    UPDATE accounts
+                    SET failed_attempts = %s,
+                        lockout_until = '9999-12-31'
+                    WHERE username = %s
                 """, (failed, username))
             else:
                 # Temporary lock
                 cursor.execute("""
-                    UPDATE Accounts
-                    SET FailedAttempts = %s,
-                        LockoutUntil = NOW() + INTERVAL %s MINUTE
-                    WHERE Username = %s
+                    UPDATE accounts
+                    SET failed_attempts = %s,
+                        lockout_until = NOW() + INTERVAL %s MINUTE
+                    WHERE username = %s
                 """, (failed, LOCKOUT_MINUTES, username))
         else:
             cursor.execute("""
-                UPDATE Accounts
-                SET FailedAttempts = %s
-                WHERE Username = %s
+                UPDATE accounts
+                SET failed_attempts = %s
+                WHERE username = %s
             """, (failed, username))
 
         conn.commit()
@@ -121,10 +127,10 @@ def login():
     # SUCCESSFUL LOGIN
     # =========================
     cursor.execute("""
-        UPDATE Accounts
-        SET FailedAttempts = 0,
-            LockoutUntil = NULL
-        WHERE Username = %s
+        UPDATE accounts
+        SET failed_attempts = 0,
+            lockout_until = NULL
+        WHERE username = %s
     """, (username,))
     conn.commit()
     conn.close()
@@ -158,12 +164,12 @@ def change_password():
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            UPDATE Accounts
-            SET Password = %s,
-                CreatedDate = NOW(),
-                FailedAttempts = 0,
-                LockoutUntil = NULL
-            WHERE Username = %s
+            UPDATE accounts
+            SET password = %s,
+                created_date = NOW(),
+                failed_attempts = 0,
+                lockout_until = NULL
+            WHERE username = %s
         """, (hashed, session["username"]))
         conn.commit()
         conn.close()
