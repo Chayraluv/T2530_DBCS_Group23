@@ -1,78 +1,82 @@
-# app.py
-from flask import Flask, redirect, url_for
-from transaction import transactions_bp
-from librarian import librarian_bp
-from reader import reader_bp # Ensure this is imported
+# app.py (MySQL / RDS version)
+
+from flask import Flask, redirect, url_for, jsonify
 from datetime import timedelta
-import pyodbc
+import os
+import pymysql
 
+from reader import reader_bp
+from librarian import librarian_bp
+from transaction import transactions_bp
+import sys
+sys.stdout.reconfigure(encoding="utf-8")
 app = Flask(__name__)
-# app.secret_key = "test_secret"
-app.secret_key = 'mmu_library_secret'
+app.config['JSON_AS_ASCII'] = False
 
-# Delete the session when browser is closed
-app.config['SESSION_PERMANENT'] = False
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
 
-# Register ALL blueprints so url_for can find them
-# app.register_blueprint(transactions_bp, url_prefix='/reader')
-# app.register_blueprint(librarian_bp, url_prefix='/admin')
-# app.register_blueprint(reader_bp) # THIS WAS MISSING
+# =========================
+# BASIC CONFIG
+# =========================
+app.secret_key = "mmu_library_secret"
+
+app.config["SESSION_PERMANENT"] = False
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=30)
+
+# =========================
+# REGISTER BLUEPRINTS
+# =========================
 app.register_blueprint(reader_bp)
 app.register_blueprint(librarian_bp)
 app.register_blueprint(transactions_bp)
 
-def get_db_connection():
-        # Update these values to match your local setup
-    conn_str = (
-        "Driver={ODBC Driver 18 for SQL Server};"
-        "Server=localhost;" #\\SQLEXPRESS;
-        "Database=MMU_Library;"
-        "Trusted_Connection=yes;"
-        "TrustServerCertificate=yes;"
-    )
-    return pyodbc.connect(conn_str)
+# =========================
+# MYSQL CONNECTION (RDS)
+# =========================
 
-# This route is good for testing the connection initially
-@app.route('/test_db')
+def get_db_connection():
+    return pymysql.connect(
+        host=os.getenv("DB_HOST"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+        database=os.getenv("DB_NAME"),
+        charset="utf8mb4",
+        cursorclass=pymysql.cursors.DictCursor
+    )
+
+# =========================
+# TEST DB CONNECTION
+# =========================
+@app.route("/test_db")
 def test_db():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT @@version;")
+        cursor.execute("SELECT VERSION();")
         row = cursor.fetchone()
         conn.close()
-        return f"Connected! MS SQL Version: {row[0]}"
-    except Exception as e:
-        return f"Error: {str(e)}"
-    
-'''@app.route('/')
-def index():
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT @@version;") # Simple query to test connection
-        row = cursor.fetchone()
-        conn.close()
-        return f"Connected! MS SQL Version: {row[0]}"
-    except Exception as e:
-        return f"Error: {str(e)}"'''
 
+        return jsonify(
+            status="success",
+            version=row["VERSION()"]
+        )
+
+    except Exception:
+        # JANGAN return str(e)
+        return jsonify(
+            status="error",
+            message="Database connection failed"
+        ), 500
+
+
+# =========================
+# ROOT
+# =========================
 @app.route("/")
 def index():
-    # Now that reader_bp is registered, this will work
-    return redirect(url_for('reader.home'))
+    return redirect(url_for("reader.home"))
 
-if __name__ == '__main__':
-    app.run(debug=True)
-    #app.run(host="0.0.0.0", port=5000, debug=True)
-
-
-'''# Default route to show the library page for a test user
-@app.route("/")
-def index():
-    test_username = "testuser"  # Change this if you want another username
-    return redirect(url_for('transactions.show_books', username=test_username))
-
+# =========================
+# MAIN
+# =========================
 if __name__ == "__main__":
-    app.run(debug=True)'''
+    app.run(host="0.0.0.0", port=5000)

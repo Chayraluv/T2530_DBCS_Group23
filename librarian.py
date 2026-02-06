@@ -1,7 +1,10 @@
+# librarian.py (MySQL / Amazon RDS version - FULL)
+
 from flask import Blueprint, render_template, redirect, url_for, flash, request, session
 from datetime import datetime
-import pyodbc
+import pymysql
 import bcrypt
+import os
 
 librarian_bp = Blueprint('librarian', __name__)
 
@@ -9,26 +12,26 @@ librarian_bp = Blueprint('librarian', __name__)
 # DATABASE CONNECTION
 # =========================
 def get_db_connection():
-    conn_str = (
-        "Driver={ODBC Driver 18 for SQL Server};"
-        "Server=localhost;"
-        "Database=MMU_Library;"
-        "Trusted_Connection=yes;"
-        "TrustServerCertificate=yes;"
+    return pymysql.connect(
+        host=os.getenv("DB_HOST"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+        database=os.getenv("DB_NAME"),
+        charset="utf8mb4",
+        cursorclass=pymysql.cursors.DictCursor
     )
-    return pyodbc.connect(conn_str)
 
 # =========================
 # PASSWORD HASHING
 # =========================
 def hash_pwd(password: str, rounds=12) -> str:
     return bcrypt.hashpw(
-        password.encode(),
+        password.encode("utf-8"),
         bcrypt.gensalt(rounds)
-    ).decode()
+    ).decode("utf-8")
 
 # =========================
-# CREATE READER ACCOUNT (SP)
+# CREATE READER ACCOUNT
 # =========================
 @librarian_bp.route('/librarian/create_member', methods=['POST'])
 def create_member():
@@ -39,31 +42,27 @@ def create_member():
     username = request.form.get('username')
     password = request.form.get('password')
 
-    if not username or not password:
-        flash("All fields are required.", "danger")
-        return redirect(url_for('librarian.dashboard'))
-
     hashed = hash_pwd(password)
 
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute(
-            "EXEC LibraryData.CreateReaderAccount ?, ?",
-            (username, hashed)
-        )
+        cursor.execute("""
+            INSERT INTO accounts (username, password, role)
+            VALUES (%s, %s, 'Reader')
+        """, (username, hashed))
         conn.commit()
         flash("Reader account created successfully.", "success")
     except Exception as e:
         flash("Failed to create account.", "danger")
-        print("CreateReaderAccount error:", e)
+        print("Create member error:", e)
     finally:
         conn.close()
 
     return redirect(url_for('librarian.dashboard'))
 
 # =========================
-# ADD BOOK (SP) + CATEGORY
+# ADD BOOK
 # =========================
 @librarian_bp.route('/librarian/add_book', methods=['POST'])
 def add_book():
@@ -75,29 +74,25 @@ def add_book():
     author = request.form.get('author')
     category = request.form.get('category')
 
-    if not title or not author or not category:
-        flash("All book fields are required.", "danger")
-        return redirect(url_for('librarian.dashboard'))
-
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute(
-            "EXEC LibraryData.AddBook ?, ?, ?",
-            (title, author, category)
-        )
+        cursor.execute("""
+            INSERT INTO books (title, author, category, available)
+            VALUES (%s, %s, %s, 1)
+        """, (title, author, category))
         conn.commit()
         flash("Book added successfully.", "success")
     except Exception as e:
         flash("Failed to add book.", "danger")
-        print("AddBook error:", e)
+        print("Add book error:", e)
     finally:
         conn.close()
 
     return redirect(url_for('librarian.dashboard'))
 
 # =========================
-# EDIT BOOK (SP) + CATEGORY
+# EDIT BOOK
 # =========================
 @librarian_bp.route('/librarian/edit_book/<int:book_id>', methods=['POST'])
 def edit_book(book_id):
@@ -112,22 +107,23 @@ def edit_book(book_id):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute(
-            "EXEC LibraryData.EditBook ?, ?, ?, ?",
-            (book_id, title, author, category)
-        )
+        cursor.execute("""
+            UPDATE books
+            SET title=%s, author=%s, category=%s
+            WHERE book_id=%s
+        """, (title, author, category, book_id))
         conn.commit()
         flash("Book updated successfully.", "success")
     except Exception as e:
         flash("Failed to update book.", "danger")
-        print("EditBook error:", e)
+        print("Edit book error:", e)
     finally:
         conn.close()
 
     return redirect(url_for('librarian.dashboard'))
 
 # =========================
-# DELETE BOOK (SP)
+# DELETE BOOK
 # =========================
 @librarian_bp.route('/librarian/delete_book/<int:book_id>')
 def delete_book(book_id):
@@ -138,19 +134,19 @@ def delete_book(book_id):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("EXEC LibraryData.DeleteBook ?", (book_id,))
+        cursor.execute("DELETE FROM books WHERE book_id=%s", (book_id,))
         conn.commit()
         flash("Book deleted.", "success")
     except Exception as e:
-        flash("Cannot delete book.", "danger")
-        print("DeleteBook error:", e)
+        flash("Failed to delete book.", "danger")
+        print("Delete book error:", e)
     finally:
         conn.close()
 
     return redirect(url_for('librarian.dashboard'))
 
 # =========================
-# TOGGLE BOOK STATUS (SP)
+# TOGGLE BOOK STATUS
 # =========================
 @librarian_bp.route('/librarian/toggle_status/<int:book_id>')
 def toggle_status(book_id):
@@ -161,12 +157,16 @@ def toggle_status(book_id):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("EXEC LibraryData.ToggleBookStatus ?", (book_id,))
+        cursor.execute("""
+            UPDATE books
+            SET available = IF(available=1, 0, 1)
+            WHERE book_id=%s
+        """, (book_id,))
         conn.commit()
         flash("Book status updated.", "success")
     except Exception as e:
         flash("Failed to toggle status.", "danger")
-        print("ToggleBookStatus error:", e)
+        print("Toggle status error:", e)
     finally:
         conn.close()
 
@@ -184,31 +184,31 @@ def reset_password():
     username = request.form.get('username')
     new_password = request.form.get('new_password')
 
-    if username == session.get('username'):
-        flash("Use Change Password flow.", "danger")
-        return redirect(url_for('librarian.dashboard'))
-
     hashed = hash_pwd(new_password)
 
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute(
-            "EXEC LibraryData.ResetUserPassword ?, ?",
-            (username, hashed)
-        )
+        cursor.execute("""
+            UPDATE accounts
+            SET password = %s,
+                failed_attempts = 0,
+                lockout_until = NULL,
+                created_date = NOW()
+            WHERE username = %s
+        """, (hashed, username))
         conn.commit()
         flash("Password reset successfully.", "success")
     except Exception as e:
         flash("Password reset failed.", "danger")
-        print("ResetUserPassword error:", e)
+        print(e)
     finally:
         conn.close()
 
     return redirect(url_for('librarian.dashboard'))
 
 # =========================
-# DELETE USER (SP)
+# DELETE USER
 # =========================
 @librarian_bp.route('/librarian/delete_user/<username>')
 def delete_user(username):
@@ -223,12 +223,12 @@ def delete_user(username):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("EXEC LibraryData.DeleteUser ?", (username,))
+        cursor.execute("DELETE FROM accounts WHERE username=%s", (username,))
         conn.commit()
         flash(f"User {username} deleted.", "success")
     except Exception as e:
         flash("Failed to delete user.", "danger")
-        print("DeleteUser error:", e)
+        print("Delete user error:", e)
     finally:
         conn.close()
 
@@ -246,30 +246,19 @@ def dashboard():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # 📚 Inventory
-    cursor.execute("""
-        SELECT BookID, Title, Author, Category, Available
-        FROM LibraryData.Books
-        ORDER BY BookID
-    """)
+    cursor.execute("SELECT * FROM books ORDER BY book_id")
     inventory = cursor.fetchall()
 
-    # 👤 Members
-    cursor.execute("""
-        SELECT Username, Role
-        FROM LibraryData.Accounts
-        ORDER BY Username
-    """)
+    cursor.execute("SELECT username AS Username, role AS Role FROM accounts ORDER BY username")
     members = cursor.fetchall()
 
-    # 🏷️ Categories (SOURCE OF TRUTH)
     cursor.execute("""
-        SELECT DISTINCT Category
-        FROM LibraryData.Books
-        WHERE Category IS NOT NULL
-        ORDER BY Category
+        SELECT DISTINCT category
+        FROM books
+        WHERE category IS NOT NULL
+        ORDER BY category
     """)
-    categories = [row[0] for row in cursor.fetchall()]
+    categories = [row["category"] for row in cursor.fetchall()]
 
     conn.close()
 
@@ -277,7 +266,8 @@ def dashboard():
         "librarian_dashboard.html",
         inventory=inventory,
         members=members,
-        categories=categories,   # ✅ THIS FIXES EVERYTHING
+        categories=categories,
+        overdue_list=[], 
         now=datetime.now()
     )
 

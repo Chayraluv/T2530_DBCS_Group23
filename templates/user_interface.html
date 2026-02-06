@@ -2,6 +2,7 @@
 <html>
 
 <head>
+    <meta charset="UTF-8">
     <title>MMU Library System</title>
     <style>
         body {
@@ -206,7 +207,7 @@
 
         <div class="login-box">
             <h2 class="login-title">System Login</h2>
-            <form method="POST">
+            <form method="POST" action="/login">
                 <select name="role" required
                         style="font-size:1.2em; padding:15px; margin-bottom:20px;
                             width:100%; border:1px solid #ccc; border-radius:8px;">
@@ -219,7 +220,7 @@
                 <input type="password" name="password" placeholder="Password" required>
 
                 <div class="btn-group">
-                    <button type="submit" formaction="/login" class="login-btn">Sign In</button>
+                    <button type="submit" class="login-btn">Sign In</button>
                 </div>
             </form>
         </div>

@@ -1,8 +1,10 @@
+# reader.py (MySQL / RDS - FINAL CLEAN)
+
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
-from transaction import transactions_bp
-import pyodbc
-import bcrypt
 from datetime import datetime, timedelta
+import pymysql
+import bcrypt
+import os
 
 # =========================
 # SECURITY CONSTANTS
@@ -17,49 +19,53 @@ reader_bp = Blueprint('reader', __name__)
 # DATABASE CONNECTION
 # =========================
 def get_db_connection():
-    return pyodbc.connect(
-        "DRIVER={ODBC Driver 18 for SQL Server};"
-        "SERVER=localhost;"
-        "DATABASE=MMU_Library;"
-        "Trusted_Connection=yes;"
-        "Encrypt=no;"
+    return pymysql.connect(
+        host=os.getenv("DB_HOST"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+        database=os.getenv("DB_NAME"),
+        charset="utf8mb4",
+        cursorclass=pymysql.cursors.DictCursor
     )
 
 # =========================
 # PASSWORD HASHING
 # =========================
 def hash_pwd(password: str, rounds=12) -> str:
-    return bcrypt.hashpw(password.encode(), bcrypt.gensalt(rounds)).decode()
+    return bcrypt.hashpw(
+        password.encode("utf-8"),
+        bcrypt.gensalt(rounds)
+    ).decode("utf-8")
 
 def check_pwd(password: str, hashed: str) -> bool:
-    try:
-        return bcrypt.checkpw(password.encode(), hashed.encode())
-    except ValueError:
-        return False
+    return bcrypt.checkpw(
+        password.encode("utf-8"),
+        hashed.encode("utf-8")
+    )
 
 # =========================
-# HOME
+# HOME (LOGIN PAGE)
 # =========================
 @reader_bp.route('/')
 def home():
-    return render_template('user_interface.html', user=None)
+    return render_template('user_interface.html')
 
 # =========================
-# LOGIN WITH AUTO-RESET LOCKOUT
+# LOGIN
 # =========================
 @reader_bp.route('/login', methods=['POST'])
 def login():
-    username = request.form.get('username')
-    password = request.form.get('password')
-    selected_role = request.form.get('role')
+    username = request.form.get('username', '').strip()
+    password = request.form.get('password', '').strip()
+    selected_role = request.form.get('role', '').strip()
 
     conn = get_db_connection()
     cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT Password, Role, FailedAttempts, LockoutUntil, CreatedDate
-        FROM LibraryData.Accounts
-        WHERE Username = ?
+        SELECT password, role, failed_attempts, lockout_until, created_date
+        FROM accounts
+        WHERE username = %s
     """, (username,))
     user = cursor.fetchone()
 
@@ -68,127 +74,122 @@ def login():
         flash("Invalid username or password.", "danger")
         return redirect(url_for('reader.home'))
 
-    db_password, db_role, failed, lockout_until, pwd_created = user
+    db_password = user["password"]
+    db_role = user["role"]              # ❗ CASE-SENSITIVE
+    failed = user["failed_attempts"]
+    lockout_until = user["lockout_until"]
+    pwd_created = user["created_date"]
+    print("=== LOGIN DEBUG ===")
+    print("username:", repr(username))
+    print("password:", repr(password))
+    print("selected_role:", repr(selected_role))
+    print("db_role:", repr(db_role))
+    print("check_pwd:", check_pwd(password, db_password))
+    print("===================")
+
 
     # =========================
-    # LOCKOUT CHECK & AUTO-RESET
+    # LOCKOUT CHECK
     # =========================
-    if lockout_until:
-        if lockout_until <= datetime.now():
-            # 🔓 Lock expired → reset counters
-            cursor.execute("""
-                UPDATE LibraryData.Accounts
-                SET FailedAttempts = 0,
-                    LockoutUntil = NULL
-                WHERE Username = ?
-            """, (username,))
-            conn.commit()
-            failed = 0
-        else:
-            remaining = int((lockout_until - datetime.now()).total_seconds() / 60) + 1
-            conn.close()
-            flash(f"Account locked. Try again in {remaining} minute(s).", "danger")
-            return redirect(url_for('reader.home'))
+    if lockout_until and lockout_until > datetime.now():
+        remaining = int((lockout_until - datetime.now()).total_seconds() / 60) + 1
+        conn.close()
+        flash(f"Account locked. Try again in {remaining} minute(s).", "danger")
+        return redirect(url_for('reader.home'))
 
     # =========================
-    # INVALID PASSWORD OR ROLE
+    # INVALID PASSWORD / ROLE
     # =========================
-    if not check_pwd(password, db_password) or db_role != selected_role:
+    if not check_pwd(password, db_password) or db_role.strip().lower() != selected_role.strip().lower():
         failed += 1
 
         if failed >= MAX_ATTEMPTS:
-            if db_role == 'Librarian':
-                # 🔒 Permanent lock until password reset
+            if db_role == "Librarian":
                 cursor.execute("""
-                    UPDATE LibraryData.Accounts
-                    SET FailedAttempts = ?, LockoutUntil = '9999-12-31'
-                    WHERE Username = ?
+                    UPDATE accounts
+                    SET failed_attempts = %s,
+                        lockout_until = '9999-12-31'
+                    WHERE username = %s
                 """, (failed, username))
             else:
-                # ⏱ Temporary lock for Reader
                 cursor.execute("""
-                    UPDATE LibraryData.Accounts
-                    SET FailedAttempts = ?,
-                        LockoutUntil = DATEADD(MINUTE, ?, GETDATE())
-                    WHERE Username = ?
+                    UPDATE accounts
+                    SET failed_attempts = %s,
+                        lockout_until = NOW() + INTERVAL %s MINUTE
+                    WHERE username = %s
                 """, (failed, LOCKOUT_MINUTES, username))
+        else:
+            cursor.execute("""
+                UPDATE accounts
+                SET failed_attempts = %s
+                WHERE username = %s
+            """, (failed, username))
 
-            conn.commit()
-            conn.close()
-            flash("Account locked due to multiple failed attempts.", "danger")
-            return redirect(url_for('reader.home'))
-
-        cursor.execute("""
-            UPDATE LibraryData.Accounts
-            SET FailedAttempts = ?
-            WHERE Username = ?
-        """, (failed, username))
         conn.commit()
         conn.close()
-
-        flash(f"Invalid login. Attempt {failed}/{MAX_ATTEMPTS}.", "danger")
+        flash("Invalid login credentials.", "danger")
         return redirect(url_for('reader.home'))
 
     # =========================
     # SUCCESSFUL LOGIN
     # =========================
     cursor.execute("""
-        UPDATE LibraryData.Accounts
-        SET FailedAttempts = 0, LockoutUntil = NULL
-        WHERE Username = ?
+        UPDATE accounts
+        SET failed_attempts = 0,
+            lockout_until = NULL
+        WHERE username = %s
     """, (username,))
     conn.commit()
     conn.close()
 
-    session['username'] = username
-    session['role'] = db_role
+    session["username"] = username
+    session["role"] = db_role
 
     # =========================
     # PASSWORD EXPIRY (LIBRARIAN)
     # =========================
-    if db_role == 'Librarian':
+    if db_role == "Librarian":
         if not pwd_created or pwd_created < datetime.now() - timedelta(days=PASSWORD_EXPIRY_DAYS):
-            session['force_pwd_change'] = True
-            return redirect(url_for('reader.change_password'))
+            session["force_pwd_change"] = True
+            return redirect(url_for("reader.change_password"))
+        return redirect(url_for("librarian.dashboard"))
 
-        return redirect(url_for('librarian.dashboard'))
-
-    return redirect(url_for('transactions.show_books', username=username))
+    return redirect(url_for("transactions.show_books", username=username))
 
 # =========================
-# CHANGE PASSWORD (UNLOCKS ACCOUNT)
+# CHANGE PASSWORD
 # =========================
 @reader_bp.route('/change_password', methods=['GET', 'POST'])
 def change_password():
-    if 'username' not in session:
-        return redirect(url_for('reader.home'))
+    if "username" not in session:
+        return redirect(url_for("reader.home"))
 
-    if request.method == 'POST':
-        new_password = request.form.get('new_password')
+    if request.method == "POST":
+        new_password = request.form.get("new_password")
         hashed = hash_pwd(new_password)
 
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            UPDATE LibraryData.Accounts
-            SET Password = ?,
-                CreatedDate = GETDATE(),
-                FailedAttempts = 0,
-                LockoutUntil = NULL
-            WHERE Username = ?
-        """, (hashed, session['username']))
+            UPDATE accounts
+            SET password = %s,
+                created_date = NOW(),
+                failed_attempts = 0,
+                lockout_until = NULL
+            WHERE username = %s
+        """, (hashed, session["username"]))
         conn.commit()
         conn.close()
 
-        session.pop('force_pwd_change', None)
+        session.pop("force_pwd_change", None)
         flash("Password updated successfully.", "success")
 
-        if session['role'] == 'Librarian':
-            return redirect(url_for('librarian.dashboard'))
+        if session["role"] == "Librarian":
+            return redirect(url_for("librarian.dashboard"))
 
-        return redirect(url_for('transactions.show_books', username=session['username']))
+        return redirect(url_for("transactions.show_books", username=session["username"]))
 
-    return render_template('change_password.html')
+    return render_template("change_password.html")
 
 # =========================
 # LOGOUT
